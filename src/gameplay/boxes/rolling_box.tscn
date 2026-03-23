@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/boxes/rolling_box.gd" id="1"]
+
+[sub_resource type="BoxMesh" id="1"]
+size = Vector3(1.4, 1.4, 1.4)
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.956863, 0.701961, 0.247059, 1)
+roughness = 0.35
+metallic = 0.2
+emission_enabled = true
+emission = Color(0.956863, 0.701961, 0.247059, 1)
+emission_energy_multiplier = 0.18
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.988235, 0.945098, 0.85098, 1)
+emission_enabled = true
+emission = Color(0.988235, 0.945098, 0.85098, 1)
+emission_energy_multiplier = 0.35
+
+[node name="RollingBox" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+mesh = SubResource("1")
+surface_material_override/0 = SubResource("2")
+
+[node name="FaceLabel" type="Label3D" parent="Visual"]
+position = Vector3(0, 1.1, 0)
+text = "● 普通"
+font_size = 24
+modulate = Color(1, 1, 1, 1)
+billboard = 1
+outline_modulate = Color(0.05, 0.05, 0.08, 1)
+outline_size = 6
+
+[node name="FacePanel" type="CSGBox3D" parent="Visual"]
+size = Vector3(0.55, 0.06, 0.55)
+position = Vector3(0, 0.73, 0)
+use_collision = false

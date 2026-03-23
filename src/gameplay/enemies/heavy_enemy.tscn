@@ -1,0 +1,80 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://src/gameplay/enemies/normal_enemy.gd" id="1"]
+
+[sub_resource type="SphereMesh" id="1"]
+radius = 0.48
+height = 0.96
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.576471, 0.65098, 0.772549, 1)
+roughness = 0.18
+
+[sub_resource type="CylinderMesh" id="3"]
+top_radius = 0.36
+bottom_radius = 0.36
+height = 0.24
+
+[sub_resource type="StandardMaterial3D" id="4"]
+albedo_color = Color(0.203922, 0.239216, 0.321569, 1)
+roughness = 0.88
+
+[sub_resource type="SphereMesh" id="5"]
+radius = 0.1
+height = 0.2
+
+[sub_resource type="StandardMaterial3D" id="6"]
+albedo_color = Color(0.996078, 0.870588, 0.415686, 1)
+roughness = 0.08
+emission_enabled = true
+emission = Color(0.996078, 0.870588, 0.415686, 1)
+emission_energy_multiplier = 0.4
+
+[sub_resource type="CylinderMesh" id="7"]
+top_radius = 0.18
+bottom_radius = 0.18
+height = 0.34
+
+[sub_resource type="StandardMaterial3D" id="8"]
+albedo_color = Color(0.145098, 0.168627, 0.231373, 1)
+roughness = 0.9
+
+[node name="HeavyEnemy" type="Node3D"]
+script = ExtResource("1")
+accepted_face_kinds = PackedStringArray("HEAVY")
+enemy_group_name = "heavy_enemy"
+
+[node name="Visual" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.38, 0)
+mesh = SubResource("1")
+surface_material_override/0 = SubResource("2")
+
+[node name="ArmorBand" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.44, 0)
+rotation = Vector3(1.5708, 0, 0)
+mesh = SubResource("3")
+surface_material_override/0 = SubResource("4")
+
+[node name="EyeLeft" type="MeshInstance3D" parent="Visual"]
+position = Vector3(-0.12, 0.48, -0.38)
+mesh = SubResource("5")
+surface_material_override/0 = SubResource("6")
+
+[node name="EyeRight" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0.12, 0.48, -0.38)
+mesh = SubResource("5")
+surface_material_override/0 = SubResource("6")
+
+[node name="Tread" type="MeshInstance3D" parent="Visual"]
+position = Vector3(0, 0.08, 0)
+rotation = Vector3(1.5708, 0, 0)
+mesh = SubResource("7")
+surface_material_override/0 = SubResource("8")
+
+[node name="StatusLight" type="OmniLight3D" parent="Visual"]
+position = Vector3(0, 0.92, 0)
+light_color = Color(0.733333, 0.815686, 0.964706, 1)
+light_energy = 0.75
+omni_range = 2.9

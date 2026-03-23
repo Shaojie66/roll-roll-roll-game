@@ -1,0 +1,517 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://src/core/main/main.gd" id="1"]
+
+; ── HUD card styles ──────────────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="CardLevel"]
+bg_color = Color(0.078, 0.110, 0.188, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.352941, 0.862745, 1, 0.75)
+expand_margin_left = 3
+expand_margin_top = 3
+expand_margin_right = 3
+expand_margin_bottom = 3
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="CardObjective"]
+bg_color = Color(0.098, 0.130, 0.210, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.733333, 0.337255, 0.85)
+expand_margin_left = 3
+expand_margin_top = 3
+expand_margin_right = 3
+expand_margin_bottom = 3
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="CardControls"]
+bg_color = Color(0.065, 0.098, 0.162, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.52549, 0.929412, 0.976471, 0.72)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+; ── Pause card style ─────────────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="PauseCardStyle"]
+bg_color = Color(0.078, 0.110, 0.188, 1.0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.349, 0.863, 1.0, 1.0)
+expand_margin_left = 3
+expand_margin_top = 3
+expand_margin_right = 3
+expand_margin_bottom = 3
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+
+; ── Level-complete card style ────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="CompleteCardStyle"]
+bg_color = Color(0.078, 0.110, 0.188, 1.0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1.0, 0.816, 0.376, 1.0)
+expand_margin_left = 3
+expand_margin_top = 3
+expand_margin_right = 3
+expand_margin_bottom = 3
+corner_radius_top_left = 28
+corner_radius_top_right = 28
+corner_radius_bottom_right = 28
+corner_radius_bottom_left = 28
+
+; ── Inset shadow panels (Item 4) ────────────────────────────────────────────
+; Renders BEHIND each PanelContainer — later in tree = on top in Godot,
+; so these must appear BEFORE their corresponding PanelContainer node.
+[sub_resource type="StyleBoxFlat" id="InsetLevel"]
+bg_color = Color(0.039, 0.071, 0.125, 1.0)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="InsetControls"]
+bg_color = Color(0.039, 0.071, 0.125, 1.0)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="InsetObjective"]
+bg_color = Color(0.039, 0.071, 0.125, 1.0)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="InsetLegend"]
+bg_color = Color(0.039, 0.071, 0.125, 1.0)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+; ── Separator styles ────────────────────────────────────────────────────────
+[sub_resource type="StyleBoxFlat" id="SepCyan"]
+bg_color = Color(0.349, 0.863, 1.0, 0.3)
+
+[sub_resource type="StyleBoxFlat" id="SepGold"]
+bg_color = Color(1.0, 0.816, 0.376, 0.3)
+
+[node name="Main" type="Node"]
+script = ExtResource("1")
+
+[node name="World" type="Node3D" parent="."]
+
+; ════════════════════════════════════════════════════════════════════════════
+;  HUD  (existing layout preserved, inset shadow panels added before cards)
+; ════════════════════════════════════════════════════════════════════════════
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="SafeArea" type="MarginContainer" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+
+[node name="Layout" type="VBoxContainer" parent="UI/SafeArea"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="TopRow" type="HBoxContainer" parent="UI/SafeArea/Layout"]
+theme_override_constants/separation = 18
+
+; ── LevelCard slot ──────────────────────────────────────────────────────────
+[node name="LevelCardInset" type="Panel" parent="UI/SafeArea/Layout/TopRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(360, 0)
+size_flags_horizontal = 3
+size_flags_vertical = 2
+theme_override_styles/panel = SubResource("InsetLevel")
+
+[node name="LevelCard" type="PanelContainer" parent="UI/SafeArea/Layout/TopRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(360, 0)
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("CardLevel")
+
+[node name="LevelPadding" type="MarginContainer" parent="UI/SafeArea/Layout/TopRow/LevelCard"]
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+
+[node name="LevelStack" type="VBoxContainer" parent="UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding"]
+theme_override_constants/separation = 4
+
+[node name="LevelKickerLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack"]
+theme_override_colors/font_color = Color(0.603922, 0.890196, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "教程 01 / 05"
+
+[node name="LevelTitleLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack"]
+theme_override_colors/font_color = Color(0.988235, 0.980392, 0.94902, 1)
+theme_override_font_sizes/font_size = 28
+text = "滚动入门"
+
+[node name="LevelSubtitleLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack"]
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.796078, 0.847059, 0.905882, 1)
+theme_override_font_sizes/font_size = 15
+text = "先看懂箱子会翻滚，再记它的用途。"
+
+[node name="TopSpacer" type="Control" parent="UI/SafeArea/Layout/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+; ── ControlsCard slot ───────────────────────────────────────────────────────
+[node name="ControlsCardInset" type="Panel" parent="UI/SafeArea/Layout/TopRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 0)
+size_flags_vertical = 2
+theme_override_styles/panel = SubResource("InsetControls")
+
+[node name="ControlsCard" type="PanelContainer" parent="UI/SafeArea/Layout/TopRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(300, 0)
+theme_override_styles/panel = SubResource("CardControls")
+
+[node name="ControlsPadding" type="MarginContainer" parent="UI/SafeArea/Layout/TopRow/ControlsCard"]
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="ControlsStack" type="VBoxContainer" parent="UI/SafeArea/Layout/TopRow/ControlsCard/ControlsPadding"]
+theme_override_constants/separation = 6
+
+[node name="ControlsTitleLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/ControlsCard/ControlsPadding/ControlsStack"]
+theme_override_colors/font_color = Color(0.701961, 0.952941, 0.937255, 1)
+theme_override_font_sizes/font_size = 15
+text = "控制"
+
+[node name="ControlsLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/ControlsCard/ControlsPadding/ControlsStack"]
+theme_override_colors/font_color = Color(0.960784, 0.972549, 0.992157, 1)
+theme_override_font_sizes/font_size = 18
+text = "移动  W A S D / 方向键\n重开  R"
+
+[node name="LayoutSpacer" type="Control" parent="UI/SafeArea/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BottomRow" type="HBoxContainer" parent="UI/SafeArea/Layout"]
+theme_override_constants/separation = 18
+
+; ── ObjectiveCard slot ──────────────────────────────────────────────────────
+[node name="ObjectiveCardInset" type="Panel" parent="UI/SafeArea/Layout/BottomRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(560, 0)
+size_flags_horizontal = 3
+size_flags_vertical = 2
+theme_override_styles/panel = SubResource("InsetObjective")
+
+[node name="ObjectiveCard" type="PanelContainer" parent="UI/SafeArea/Layout/BottomRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(560, 0)
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("CardObjective")
+
+[node name="ObjectivePadding" type="MarginContainer" parent="UI/SafeArea/Layout/BottomRow/ObjectiveCard"]
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 20
+
+[node name="ObjectiveStack" type="VBoxContainer" parent="UI/SafeArea/Layout/BottomRow/ObjectiveCard/ObjectivePadding"]
+theme_override_constants/separation = 8
+
+[node name="ObjectiveTitleLabel" type="Label" parent="UI/SafeArea/Layout/BottomRow/ObjectiveCard/ObjectivePadding/ObjectiveStack"]
+theme_override_colors/font_color = Color(1, 0.85098, 0.52549, 1)
+theme_override_font_sizes/font_size = 15
+text = "当前目标"
+
+[node name="HintLabel" type="Label" parent="UI/SafeArea/Layout/BottomRow/ObjectiveCard/ObjectivePadding/ObjectiveStack"]
+autowrap_mode = 3
+theme_override_colors/font_color = Color(1, 0.980392, 0.94902, 1)
+theme_override_font_sizes/font_size = 22
+text = "目标加载中..."
+
+[node name="BottomSpacer" type="Control" parent="UI/SafeArea/Layout/BottomRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+; ── LegendCard slot ─────────────────────────────────────────────────────────
+[node name="LegendCardInset" type="Panel" parent="UI/SafeArea/Layout/BottomRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(320, 0)
+size_flags_vertical = 2
+theme_override_styles/panel = SubResource("InsetLegend")
+
+[node name="LegendCard" type="PanelContainer" parent="UI/SafeArea/Layout/BottomRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/panel = SubResource("CardLevel")
+
+[node name="LegendPadding" type="MarginContainer" parent="UI/SafeArea/Layout/BottomRow/LegendCard"]
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="LegendContent" type="VBoxContainer" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding"]
+theme_override_constants/separation = 8
+
+[node name="LegendTitle" type="Label" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent"]
+theme_override_colors/font_color = Color(0.603922, 0.890196, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "箱体面提示"
+
+[node name="LegendDot1" type="HBoxContainer" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent"]
+theme_override_constants/separation = 10
+
+[node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot1"]
+custom_minimum_size = Vector2(14, 14)
+size_flags_vertical = 4
+theme_override_colors/color = Color(0.956863, 0.701961, 0.247059, 1)
+
+[node name="Text" type="Label" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot1"]
+theme_override_colors/font_color = Color(0.952941, 0.968627, 0.996078, 1)
+theme_override_font_sizes/font_size = 18
+text = "普通  压普通按钮"
+
+[node name="LegendDot2" type="HBoxContainer" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent"]
+theme_override_constants/separation = 10
+
+[node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot2"]
+custom_minimum_size = Vector2(14, 14)
+size_flags_vertical = 4
+theme_override_colors/color = Color(0.968627, 0.486275, 0.345098, 1)
+
+[node name="Text" type="Label" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot2"]
+theme_override_colors/font_color = Color(0.952941, 0.968627, 0.996078, 1)
+theme_override_font_sizes/font_size = 18
+text = "冲击  撞开普通敌人"
+
+[node name="LegendDot3" type="HBoxContainer" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent"]
+theme_override_constants/separation = 10
+
+[node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot3"]
+custom_minimum_size = Vector2(14, 14)
+size_flags_vertical = 4
+theme_override_colors/color = Color(0.886275, 0.372549, 0.223529, 1)
+
+[node name="Text" type="Label" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot3"]
+theme_override_colors/font_color = Color(0.952941, 0.968627, 0.996078, 1)
+theme_override_font_sizes/font_size = 18
+text = "重压  重压按钮 / 装甲敌人"
+
+[node name="LegendDot4" type="HBoxContainer" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent"]
+theme_override_constants/separation = 10
+
+[node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot4"]
+custom_minimum_size = Vector2(14, 14)
+size_flags_vertical = 4
+theme_override_colors/color = Color(0.290196, 0.780392, 0.94902, 1)
+
+[node name="Text" type="Label" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot4"]
+theme_override_colors/font_color = Color(0.952941, 0.968627, 0.996078, 1)
+theme_override_font_sizes/font_size = 18
+text = "能源  给能源槽供能"
+
+; ════════════════════════════════════════════════════════════════════════════
+;  PauseOverlay  (Item 1)
+; ════════════════════════════════════════════════════════════════════════════
+[node name="PauseOverlay" type="CanvasLayer" parent="."]
+process_mode = 4
+layer = 10
+
+[node name="DarkenBg" type="ColorRect" parent="PauseOverlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+
+[node name="SafeArea" type="MarginContainer" parent="PauseOverlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+
+[node name="CenterContainer" type="CenterContainer" parent="PauseOverlay/SafeArea"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PauseOverlay/SafeArea/CenterContainer"]
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="PauseCard" type="PanelContainer" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(400, 0)
+theme_override_styles/panel = SubResource("PauseCardStyle")
+
+[node name="PauseMargin" type="MarginContainer" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard"]
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin"]
+theme_override_constants/separation = 24
+
+[node name="PauseIcon" type="Label" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+theme_override_colors/font_color = Color(0.349, 0.863, 1.0, 1.0)
+theme_override_font_sizes/font_size = 48
+text = "II"
+horizontal_alignment = 1
+
+[node name="PauseTitle" type="Label" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+theme_override_colors/font_color = Color(0.973, 0.980, 1.0, 1.0)
+theme_override_font_sizes/font_size = 28
+text = "游戏暂停"
+horizontal_alignment = 1
+
+[node name="Sep" type="HSeparator" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+theme_override_styles/separator = SubResource("SepCyan")
+
+[node name="ResumeButton" type="Button" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+custom_minimum_size = Vector2(0, 44)
+text = "继续游戏"
+
+[node name="RestartButton" type="Button" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+custom_minimum_size = Vector2(0, 44)
+text = "重新开始"
+
+[node name="QuitButton" type="Button" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+custom_minimum_size = Vector2(0, 44)
+text = "返回主界面"
+
+; ════════════════════════════════════════════════════════════════════════════
+;  LevelCompleteOverlay  (Item 2)
+; ════════════════════════════════════════════════════════════════════════════
+[node name="LevelCompleteOverlay" type="CanvasLayer" parent="."]
+process_mode = 4
+layer = 10
+
+[node name="DarkenBg" type="ColorRect" parent="LevelCompleteOverlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+
+[node name="SafeArea" type="MarginContainer" parent="LevelCompleteOverlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+
+[node name="CenterContainer" type="CenterContainer" parent="LevelCompleteOverlay/SafeArea"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer"]
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="CompleteCard" type="PanelContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(460, 0)
+theme_override_styles/panel = SubResource("CompleteCardStyle")
+
+[node name="CompleteMargin" type="MarginContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard"]
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 36
+
+[node name="VBoxContainer" type="VBoxContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin"]
+theme_override_constants/separation = 20
+
+[node name="LevelKicker" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+theme_override_colors/font_color = Color(0.349, 0.863, 1.0, 1.0)
+theme_override_font_sizes/font_size = 18
+text = "教程 01 / 05"
+horizontal_alignment = 1
+
+[node name="CompleteTitle" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+theme_override_colors/font_color = Color(0.973, 0.980, 1.0, 1.0)
+theme_override_font_sizes/font_size = 32
+text = "本关完成！"
+horizontal_alignment = 1
+
+[node name="MoveCount" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+theme_override_colors/font_color = Color(0.722, 0.596, 0.251, 1.0)
+theme_override_font_sizes/font_size = 20
+text = "步数: 0"
+horizontal_alignment = 1
+
+[node name="StarRow" type="HBoxContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Star1" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow"]
+theme_override_colors/font_color = Color(1.0, 0.816, 0.376, 1.0)
+theme_override_font_sizes/font_size = 52
+text = "★"
+
+[node name="Star2" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow"]
+theme_override_colors/font_color = Color(1.0, 0.816, 0.376, 1.0)
+theme_override_font_sizes/font_size = 52
+text = "★"
+
+[node name="Star3" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow"]
+theme_override_colors/font_color = Color(1.0, 0.816, 0.376, 1.0)
+theme_override_font_sizes/font_size = 52
+text = "★"
+
+[node name="Sep" type="HSeparator" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+theme_override_styles/separator = SubResource("SepGold")
+
+[node name="ButtonRow" type="HBoxContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="NextButton" type="Button" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow"]
+custom_minimum_size = Vector2(0, 44)
+text = "下一关"
+
+[node name="ReplayButton" type="Button" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow"]
+custom_minimum_size = Vector2(0, 44)
+text = "重玩本关"
+
+[node name="SelectButton" type="Button" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow"]
+custom_minimum_size = Vector2(0, 44)
+text = "选择关卡"
+
+[node name="Debug" type="Node" parent="."]

@@ -1,0 +1,14 @@
+[gd_resource type="Environment" format=3]
+
+[resource]
+background_mode = 2
+background_color = Color(0.035, 0.050, 0.090, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.55, 0.62, 0.78, 1)
+ambient_light_energy = 0.40
+glow_enabled = true
+glow_intensity = 0.50
+glow_strength = 0.90
+glow_bloom = 0.08
+glow_blend_mode = 1
+tonemap_mode = 3

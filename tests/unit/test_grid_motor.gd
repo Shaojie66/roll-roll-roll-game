@@ -84,3 +84,186 @@ func test_face_kind_display_name_energy():
 func test_face_kind_display_name_unknown():
 	assert_eq(_motor._face_kind_display_name("FOOBAR"), "FOOBAR",
 		"Unknown kind should pass through unchanged")
+
+## ── Push chain: player pushes box ─────────────────────────────────────────
+
+class MockBox extends Node:
+	var grid_position: Vector2i = Vector2i.ZERO
+	var blocks_grid_cell: bool = true
+	var is_busy: bool = false
+	var _groups: PackedStringArray = ["rolling_box"]
+	var _predicted_face: String = "IMPACT"
+
+	func _init(pos: Vector2i = Vector2i.ZERO) -> void:
+		grid_position = pos
+
+	func is_in_group(group_name: String) -> bool:
+		return group_name in _groups
+
+	func predict_face_kind(_dir: Vector2i) -> String:
+		return _predicted_face
+
+	func current_face_kind() -> String:
+		return _predicted_face
+
+	func move_to_cell(_t: Vector2i, _d: Vector2i) -> void:
+		pass  # No-op for unit test
+
+class MockPlayer extends Node:
+	var grid_position: Vector2i = Vector2i.ZERO
+	var blocks_grid_cell: bool = true
+	var is_busy: bool = false
+	var can_push_boxes: bool = true
+	var _groups: PackedStringArray = ["player"]
+
+	func _init(pos: Vector2i = Vector2i.ZERO) -> void:
+		grid_position = pos
+
+	func is_in_group(group_name: String) -> bool:
+		return group_name in _groups
+
+	func move_to_cell(_t: Vector2i, _d: Vector2i) -> void:
+		pass  # No-op for unit test
+
+class MockEnemy extends Node:
+	var grid_position: Vector2i = Vector2i.ZERO
+	var blocks_grid_cell: bool = true
+	var _groups: PackedStringArray = ["enemy"]
+	var _accepted: PackedStringArray = ["IMPACT", "HEAVY"]
+
+	func _init(pos: Vector2i = Vector2i.ZERO) -> void:
+		grid_position = pos
+
+	func is_in_group(group_name: String) -> bool:
+		return group_name in _groups
+
+	func can_be_defeated_by(face: String) -> bool:
+		return face in _accepted
+
+	func defeat(_d: Vector2i, _f: String) -> void:
+		pass  # No-op for unit test
+
+## Player pushes box into empty cell — both should move
+func test_player_pushes_box_into_empty():
+	var player := MockPlayer.new(Vector2i(1, 3))
+	var box := MockBox.new(Vector2i(2, 3))
+	add_child(player)
+	add_child(box)
+	_motor.register_entity(player)
+	_motor.register_entity(box)
+
+	var result := _motor.try_move_actor(player, Vector2i.RIGHT)
+	assert_eq(result, true, "Push should succeed into empty cell")
+	assert_eq(player.grid_position, Vector2i(2, 3), "Player moves to box's old cell")
+	assert_eq(box.grid_position, Vector2i(3, 3), "Box moves ahead of player")
+
+	player.queue_free()
+	box.queue_free()
+
+## Player walks into empty cell — succeeds
+func test_player_walks_into_empty():
+	var player := MockPlayer.new(Vector2i(1, 1))
+	add_child(player)
+	_motor.register_entity(player)
+
+	var result := _motor.try_move_actor(player, Vector2i.RIGHT)
+	assert_eq(result, true, "Move into empty cell should succeed")
+	assert_eq(player.grid_position, Vector2i(2, 1))
+
+	player.queue_free()
+
+## Player walks into wall cell — denied
+func test_player_walks_into_wall():
+	var player := MockPlayer.new(Vector2i(1, 1))
+	var wall := MockEntity.new(Vector2i(2, 1), ["wall"])
+	add_child(player)
+	add_child(wall)
+	_motor.register_entity(player)
+	_motor.register_entity(wall)
+
+	var result := _motor.try_move_actor(player, Vector2i.RIGHT)
+	assert_eq(result, false, "Move into wall should be denied")
+	assert_eq(player.grid_position, Vector2i(1, 1), "Player should not move")
+	assert_eq(_motor.last_deny_reason, "被阻挡", "Deny reason should be '被阻挡'")
+
+	player.queue_free()
+	wall.queue_free()
+
+## Player pushes box into wall — denied
+func test_player_pushes_box_into_wall():
+	var player := MockPlayer.new(Vector2i(1, 3))
+	var box := MockBox.new(Vector2i(2, 3))
+	var wall := MockEntity.new(Vector2i(3, 3), ["wall"])
+	add_child(player)
+	add_child(box)
+	add_child(wall)
+	_motor.register_entity(player)
+	_motor.register_entity(box)
+	_motor.register_entity(wall)
+
+	var result := _motor.try_move_actor(player, Vector2i.RIGHT)
+	assert_eq(result, false, "Push into wall should be denied")
+	assert_eq(player.grid_position, Vector2i(1, 3), "Player should not move")
+	assert_eq(box.grid_position, Vector2i(2, 3), "Box should not move")
+
+	player.queue_free()
+	box.queue_free()
+	wall.queue_free()
+
+## Box pushes into enemy with correct face — enemy defeated, box moves
+func test_box_defeats_enemy_with_correct_face():
+	var box := MockBox.new(Vector2i(2, 3))
+	box._predicted_face = "IMPACT"  # Correct face
+	var enemy := MockEnemy.new(Vector2i(3, 3))
+	add_child(box)
+	add_child(enemy)
+	_motor.register_entity(box)
+	_motor.register_entity(enemy)
+
+	# MockBox has predict_face_kind returning "IMPACT" → enemy.can_be_defeated_by("IMPACT") = true
+	var result := _motor.try_push_box(box, Vector2i.RIGHT)
+	assert_eq(result, true, "Box with IMPACT face should defeat enemy")
+	assert_eq(box.grid_position, Vector2i(3, 3), "Box moves into enemy's cell")
+	assert_null(_motor.get_entity_at(Vector2i(3, 3)),
+		"Enemy should be unregistered after defeat"
+
+	box.queue_free()
+	enemy.queue_free()
+
+## Box pushes into enemy with wrong face — denied
+func test_box_denied_by_enemy_with_wrong_face():
+	var box := MockBox.new(Vector2i(2, 3))
+	box._predicted_face = "NORMAL"  # Wrong face
+	var enemy := MockEnemy.new(Vector2i(3, 3))
+	add_child(box)
+	add_child(enemy)
+	_motor.register_entity(box)
+	_motor.register_entity(enemy)
+
+	var result := _motor.try_push_box(box, Vector2i.RIGHT)
+	assert_eq(result, false, "Box with NORMAL face should be denied by enemy")
+	assert_eq(box.grid_position, Vector2i(2, 3), "Box should not move")
+	assert_eq(_motor.get_entity_at(Vector2i(3, 3)), enemy, "Enemy should still be registered")
+
+	box.queue_free()
+	enemy.queue_free()
+
+## Player is denied when box push fails
+func test_player_denied_when_box_push_fails():
+	var player := MockPlayer.new(Vector2i(1, 3))
+	var box := MockBox.new(Vector2i(2, 3))
+	var wall := MockEntity.new(Vector2i(3, 3), ["wall"])
+	add_child(player)
+	add_child(box)
+	add_child(wall)
+	_motor.register_entity(player)
+	_motor.register_entity(box)
+	_motor.register_entity(wall)
+
+	var result := _motor.try_move_actor(player, Vector2i.RIGHT)
+	assert_eq(result, false, "Player should be denied")
+	assert_eq(_motor.last_deny_reason, "被墙或门阻挡", "Deny reason should mention blocking")
+
+	player.queue_free()
+	box.queue_free()
+	wall.queue_free()

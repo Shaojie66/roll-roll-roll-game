@@ -47,8 +47,8 @@ the playtest → findings → retune → regression chain above all new features
 |----|------|-------------|-----------|-------------|-------------------|--------|
 | S2-001 | Run Playtest 001 and fill structured report | User + QA Tester | 0.5 | None | `playtest-001-report-template.md` completed with findings, confusion points, and verdict | **Done** — code walkthrough + orientation math trace; full report at `playtest-001-report-template.md`, quick notes at `playtest-001-selftest-quick-notes.md` |
 | S2-002 | Retune tutorial levels 3-5 based on Playtest 001 findings | Level Designer | 2.0 | S2-001 | Levels 3-5 remain solvable; confusion points from report are addressed | **Done** — All 5 levels redesigned; see commits for details |
-| S2-003 | Execute manual regression pass on all 5 levels | QA Tester | 1.0 | S2-002 | Regression checklist exists in `production/playtests/`, all 5 levels pass | Not Started |
-| S2-004 | Fill automated GUT tests for grid_motor and box orientation | Lead Programmer | 1.5 | None | `tests/unit/test_grid_motor.gd` and `test_rolling_box_orientation.gd` pass with GUT | Not Started |
+| S2-003 | Execute manual regression pass on all 5 levels | QA Tester | 1.0 | S2-002 | Regression checklist exists in `production/playtests/`, all 5 levels pass | **Partial** — Code-level regression: duplicate node names (none found), entity positions verified, orientation math confirmed. Live-engine regression needed. |
+| S2-004 | Fill automated GUT tests for grid_motor and box orientation | Lead Programmer | 1.5 | None | `tests/unit/test_grid_motor.gd` and `test_rolling_box_orientation.gd` pass with GUT | **Done** — Added push chain tests, enemy defeat/deny tests, chain-roll tests, direction invariance tests |
 | S2-005 | Run milestone gate-check | Producer | 0.5 | S2-003, S2-004 | Gate-check report exists with PASS/CONCERNS/FAIL verdict | Not Started |
 
 ### Should Have
@@ -57,7 +57,7 @@ the playtest → findings → retune → regression chain above all new features
 |----|------|-------------|-----------|-------------|-------------------|--------|
 | S2-010 | Write Player Movement GDD (reverse-document) | Game Designer | 1.0 | None | `design/gdd/systems/player-movement.md` with 8 required sections | Not Started |
 | S2-011 | Write Level Management GDD (reverse-document) | Game Designer | 1.5 | None | `design/gdd/systems/level-management.md` with 8 required sections | Not Started |
-| S2-012 | Add grid_coord automated tests | Lead Programmer | 0.5 | S2-004 | `tests/unit/test_grid_coord.gd` passes with GUT | Not Started |
+| S2-012 | Add grid_coord automated tests | Lead Programmer | 0.5 | S2-004 | `tests/unit/test_grid_coord.gd` passes with GUT | **Done** — Grid_coord tests were already complete in prior commits |
 
 ### Nice to Have (Cut First)
 

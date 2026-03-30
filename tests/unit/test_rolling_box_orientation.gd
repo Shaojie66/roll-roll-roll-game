@@ -47,7 +47,7 @@ func test_double_roll_right_right():
 	## Second roll RIGHT: IMPACT_A was on top, NORMAL_A now on right
 	##   new top = old left. After first roll, left=NORMAL_B (was bottom).
 	## Let's just verify through the public API by simulating two predictions.
-	var after_first := _box.predict_face_kind(Vector2i.RIGHT)
+	var after_first: String = _box.predict_face_kind(Vector2i.RIGHT)
 	assert_eq(after_first, "IMPACT", "First roll RIGHT → IMPACT on top")
 	## Actually roll to commit the orientation change, then predict again.
 	## We can't easily simulate without move_to_cell. Just verify first prediction.
@@ -108,7 +108,7 @@ func test_left_always_impact():
 func test_impact_face_defeats_normal_enemy():
 	# Box at initial: top=NORMAL. Predict RIGHT → IMPACT.
 	# IMPACT is in NormalEnemy accepted list.
-	var predicted := _box.predict_face_kind(Vector2i.RIGHT)
+	var predicted: String = _box.predict_face_kind(Vector2i.RIGHT)
 	assert_eq(predicted, "IMPACT", "RIGHT push should predict IMPACT face")
 
 func test_normal_face_does_not_defeat_enemy():

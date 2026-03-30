@@ -88,7 +88,7 @@ func _open_door(instant := false) -> void:
 
 	if not instant:
 		if AudioManager and AudioManager.has_method('play_door_open'):
-		    AudioManager.play_door_open()
+			AudioManager.play_door_open()
 	_apply_visual_state(true, instant)
 
 func _close_door(instant := false) -> void:
@@ -105,7 +105,7 @@ func _close_door(instant := false) -> void:
 
 	if not instant:
 		if AudioManager and AudioManager.has_method('play_door_close'):
-		    AudioManager.play_door_close()
+			AudioManager.play_door_close()
 	_apply_visual_state(false, instant)
 
 func _apply_visual_state(open_state: bool, instant := false) -> void:

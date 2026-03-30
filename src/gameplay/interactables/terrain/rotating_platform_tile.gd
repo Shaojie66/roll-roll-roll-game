@@ -50,7 +50,7 @@ func _apply_rotation(box: Node) -> void:
 
 	box.apply_rotation()
 	if AudioManager and AudioManager.has_method('play_terrain_sfx'):
-	    AudioManager.play_terrain_sfx("rotating_platform")
+		AudioManager.play_terrain_sfx("rotating_platform")
 	terrain_activated.emit(box, "rotating_platform")
 	_do_rotation_animation()
 

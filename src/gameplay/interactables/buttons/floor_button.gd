@@ -71,15 +71,15 @@ func _refresh_state(force_visual_refresh := false) -> void:
 	if was_pressed and not is_pressed:
 		## Box left the button.
 		if AudioManager and AudioManager.has_method('play_button_release'):
-		    AudioManager.play_button_release()
+			AudioManager.play_button_release()
 		if AudioManager and AudioManager.has_method('stop_button_hum'):
-		    AudioManager.stop_button_hum()
+			AudioManager.stop_button_hum()
 	elif is_pressed and not was_pressed:
 		## Box landed on the button.
 		if AudioManager and AudioManager.has_method('play_button_press'):
-		    AudioManager.play_button_press()
+			AudioManager.play_button_press()
 		if AudioManager and AudioManager.has_method('start_button_hum'):
-		    AudioManager.start_button_hum()
+			AudioManager.start_button_hum()
 
 	_apply_visual_state(force_visual_refresh)
 

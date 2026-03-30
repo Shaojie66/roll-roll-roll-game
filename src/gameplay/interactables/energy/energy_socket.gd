@@ -57,7 +57,7 @@ func _refresh_state(force_visual_refresh := false) -> void:
 	is_powered = next_powered
 	if is_powered:
 		if AudioManager and AudioManager.has_method('play_energy_socket_activate'):
-		    AudioManager.play_energy_socket_activate()
+			AudioManager.play_energy_socket_activate()
 	_apply_visual_state(force_visual_refresh)
 	_sync_links()
 

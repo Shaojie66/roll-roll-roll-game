@@ -109,7 +109,7 @@ func _on_push_timer() -> void:
 	var result: bool = _grid_motor.try_push_box(_box, conveyor_direction)
 	if result:
 		if AudioManager and AudioManager.has_method('play_terrain_sfx'):
-		    AudioManager.play_terrain_sfx("conveyor")
+			AudioManager.play_terrain_sfx("conveyor")
 		terrain_activated.emit(_box, "conveyor")
 		## After a successful push, box has moved off this cell.
 		## _on_entity_move_finished will fire for origin==grid_position,

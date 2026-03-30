@@ -79,7 +79,7 @@ func _on_move_finished() -> void:
 	if _grid_motor != null and _grid_motor.has_method("notify_entity_move_finished"):
 		_grid_motor.notify_entity_move_finished(self, _previous_grid_position, grid_position)
 	if AudioManager and AudioManager.has_method('play_player_step'):
-	    AudioManager.play_player_step()
+		AudioManager.play_player_step()
 
 func _on_move_denied(actor: Node, reason: String) -> void:
 	if actor != self:

@@ -63,7 +63,7 @@ func _apply_ramp_transform(box: Node, roll_direction: Vector2i) -> void:
 	box.apply_ramp_transform(roll_direction)
 	terrain_activated.emit(box, "ramp")
 	if AudioManager and AudioManager.has_method('play_terrain_sfx'):
-	    AudioManager.play_terrain_sfx("ramp_activate")
+		AudioManager.play_terrain_sfx("ramp_activate")
 
 func _update_active_state() -> void:
 	var occupant: Node = null

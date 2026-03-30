@@ -63,7 +63,7 @@ func _activate_goal() -> void:
 
 	is_active = true
 	if AudioManager and AudioManager.has_method('play_goal_activate'):
-	    AudioManager.play_goal_activate()
+		AudioManager.play_goal_activate()
 	_apply_visual_state()
 
 	var level_root := get_tree().get_first_node_in_group("level_root")

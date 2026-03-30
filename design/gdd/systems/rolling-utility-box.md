@@ -1,6 +1,7 @@
 # 滚动功能箱系统
 
-> **Status**: Draft
+> **Status**: Implemented
+> **Implementation Complete**: RollingBox implemented in Sprint 2 — orientation system, face display, ramp/rotation integration all working
 > **Author**: Codex + User
 > **Last Updated**: 2026-03-21
 > **Implements Pillar**: 滚动就是解谜 / 一个箱子，多种用途 / 可爱外表，硬核规则
@@ -183,14 +184,14 @@ defeated = predicted_top_face in enemy_vulnerability
 
 ## Acceptance Criteria
 
-- [ ] 玩家可以稳定地向四个方向推动箱子 1 格
-- [ ] 箱子每次滚动后，逻辑朝向与动画结果完全一致
-- [ ] 普通按钮、重压按钮、能源槽都能按规则识别顶面类型
-- [ ] 普通敌人与重甲敌人的击败条件完全确定，无随机因素
-- [ ] 推动失败时不会产生穿模、重叠或错误位移
-- [ ] 关卡重置后，所有箱子朝向与位置恢复初始状态
-- [ ] 玩家仅凭画面反馈即可判断箱子当前用途
-- [ ] No hardcoded values in implementation
+- [x] 玩家可以稳定地向四个方向推动箱子 1 格
+- [x] 箱子每次滚动后，逻辑朝向与动画结果完全一致
+- [x] 普通按钮、重压按钮、能源槽都能按规则识别顶面类型
+- [x] 普通敌人与重甲敌人的击败条件完全确定，无随机因素
+- [x] 推动失败时不会产生穿模、重叠或错误位移
+- [x] 关卡重置后，所有箱子朝向与位置恢复初始状态
+- [x] 玩家仅凭画面反馈即可判断箱子当前用途
+- [x] No hardcoded values in implementation
 
 ## Open Questions
 

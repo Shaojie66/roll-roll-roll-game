@@ -13,7 +13,10 @@ enum FaceId {
 	ENERGY,
 }
 
-@export var roll_duration := 0.22
+@export var roll_duration := DesignTokens.BOX_ROLL_DURATION
+## Override initial top face for level-specific box orientations.
+## Valid values: FaceId.NORMAL_A (default), FaceId.IMPACT_A, FaceId.HEAVY, FaceId.ENERGY
+@export var initial_top_face: FaceId = FaceId.NORMAL_A
 const BOX_HEIGHT := 0.5
 ## Face visual data — populated from DesignTokens in _ready().
 ## Declared as var (not const) so Color references resolve at runtime.
@@ -81,6 +84,35 @@ func _ready() -> void:
 	_bind_grid_motor()
 	_prepare_visual_material()
 
+	## Override orientation based on exported initial_top_face
+	if initial_top_face == FaceId.HEAVY:
+		_orientation = {
+			"top": FaceId.HEAVY,
+			"bottom": FaceId.ENERGY,
+			"left": FaceId.NORMAL_A,
+			"right": FaceId.NORMAL_B,
+			"front": FaceId.IMPACT_A,
+			"back": FaceId.IMPACT_B,
+		}
+	elif initial_top_face == FaceId.ENERGY:
+		_orientation = {
+			"top": FaceId.ENERGY,
+			"bottom": FaceId.HEAVY,
+			"left": FaceId.NORMAL_A,
+			"right": FaceId.NORMAL_B,
+			"front": FaceId.IMPACT_A,
+			"back": FaceId.IMPACT_B,
+		}
+	elif initial_top_face == FaceId.IMPACT_A:
+		_orientation = {
+			"top": FaceId.IMPACT_A,
+			"bottom": FaceId.IMPACT_B,
+			"left": FaceId.NORMAL_A,
+			"right": FaceId.NORMAL_B,
+			"front": FaceId.HEAVY,
+			"back": FaceId.ENERGY,
+		}
+
 	_refresh_display()
 
 func move_to_cell(target: Vector2i, direction: Vector2i) -> void:
@@ -125,7 +157,8 @@ func _on_roll_finished() -> void:
 	if _grid_motor != null and _grid_motor.has_method("notify_entity_move_finished"):
 		_grid_motor.notify_entity_move_finished(self, _previous_grid_position, grid_position)
 	## Play box-roll SFX. Map the box's top-face FaceId to AudioManager.FaceType.
-	AudioManager.play_box_roll(_face_id_to_audio_type(_orientation["top"]))
+	if AudioManager and AudioManager.has_method('play_box_roll'):
+		AudioManager.play_box_roll(_face_id_to_audio_type(_orientation["top"]))
 
 
 ## Maps RollingBox.FaceId to AudioManager.FaceType for SFX pitch/volume routing.
@@ -209,7 +242,7 @@ func _predict_orientation_after_roll(direction: Vector2i) -> Dictionary:
 ## Applies a 90° clockwise rotation to the box's face orientation.
 ## Called by RotatingPlatformTile when the box enters the tile.
 ## Clockwise: top → left → bottom → right → top.
-func _apply_rotation() -> void:
+func apply_rotation() -> void:
 	var old := _orientation.duplicate()
 	_orientation["top"] = old["left"]
 	_orientation["left"] = old["bottom"]
@@ -221,7 +254,7 @@ func _apply_rotation() -> void:
 ## Applies a ramp transform to the box's face orientation.
 ## Called by RampTile when the box rolls onto a ramp.
 ## The transform is the same as a roll orientation shift.
-func _apply_ramp_transform(roll_direction: Vector2i) -> void:
+func apply_ramp_transform(roll_direction: Vector2i) -> void:
 	var old := _orientation.duplicate()
 
 	if roll_direction == Vector2i.RIGHT:
@@ -252,6 +285,12 @@ func _bind_grid_motor() -> void:
 	_grid_motor = get_tree().get_first_node_in_group("grid_motor")
 	if _grid_motor != null:
 		_grid_motor.register_entity(self)
+
+
+func _exit_tree() -> void:
+	## Clean up duplicated material to prevent memory leaks
+	if _body_material != null:
+		_body_material = null
 
 func _prepare_visual_material() -> void:
 	var current_material := body.get_active_material(0)

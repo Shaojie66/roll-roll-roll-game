@@ -5,8 +5,8 @@ class_name FloorButton
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const BUTTON_HEIGHT := 0.03
-@export var press_offset := Vector3(0.0, -0.08, 0.0)
-@export var press_animation_duration := 0.12
+@export var press_offset := Vector3(0.0, DesignTokens.BUTTON_PRESS_OFFSET_Y, 0.0)
+@export var press_animation_duration := DesignTokens.BUTTON_PRESS_DURATION
 
 @export var accepted_face_kinds := PackedStringArray(["NORMAL", "IMPACT", "HEAVY", "ENERGY"])
 @export var linked_doors: Array[NodePath] = []
@@ -70,12 +70,16 @@ func _refresh_state(force_visual_refresh := false) -> void:
 
 	if was_pressed and not is_pressed:
 		## Box left the button.
-		AudioManager.play_button_release()
-		AudioManager.stop_button_hum()
+		if AudioManager and AudioManager.has_method('play_button_release'):
+		    AudioManager.play_button_release()
+		if AudioManager and AudioManager.has_method('stop_button_hum'):
+		    AudioManager.stop_button_hum()
 	elif is_pressed and not was_pressed:
 		## Box landed on the button.
-		AudioManager.play_button_press()
-		AudioManager.start_button_hum()
+		if AudioManager and AudioManager.has_method('play_button_press'):
+		    AudioManager.play_button_press()
+		if AudioManager and AudioManager.has_method('start_button_hum'):
+		    AudioManager.start_button_hum()
 
 	_apply_visual_state(force_visual_refresh)
 

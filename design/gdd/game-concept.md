@@ -321,11 +321,13 @@
 
 ## Next Steps
 
-- [ ] Confirm this concept direction with the user
-- [ ] Run `/setup-engine godot [version]` to pin the engine and technical defaults
-- [ ] Create a dedicated pillars document expanding the box-state logic
-- [ ] Decompose the game into systems with `/map-systems`
-- [ ] Write a per-system GDD for `rolling-utility-box`
-- [ ] Prototype one 5-level graybox sequence
-- [ ] Validate readability with a first playtest
-- [ ] Plan the first milestone with `/sprint-plan new`
+- [x] Confirm concept direction with user
+- [x] Engine setup: Godot 4.6.1 pinned
+- [x] Create pillars document
+- [x] Decompose game into systems
+- [x] Write per-system GDDs (rolling-utility-box, terrain, enemy, interactables, ui-hud)
+- [x] Prototype 5-level graybox sequence
+- [x] First playtest (Playtest 001)
+- [x] Milestone-01 completed
+- [ ] Second playtest (Playtest 002) — in progress
+- [ ] Milestone-02 (Vertical Slice) completion pending

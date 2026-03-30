@@ -5,7 +5,7 @@ class_name GoalPad
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const GOAL_HEIGHT := 0.03
-@export var activate_animation_duration := 0.16
+@export var activate_animation_duration := DesignTokens.GOAL_ACTIVATE_DURATION
 
 @export var requires_external_power := false
 
@@ -62,7 +62,8 @@ func _activate_goal() -> void:
 		return
 
 	is_active = true
-	AudioManager.play_goal_activate()
+	if AudioManager and AudioManager.has_method('play_goal_activate'):
+	    AudioManager.play_goal_activate()
 	_apply_visual_state()
 
 	var level_root := get_tree().get_first_node_in_group("level_root")

@@ -79,15 +79,48 @@ const DENY_FLASH_EMISSION  := Color(0.8, 0.1,  0.1,  1.0) ## red emission on mov
 # ── Terrain tile colors ─────────────────────────────────────────────────────────
 ## Ramp: warm amber — matches FACE_NORMAL palette
 const RAMP_COLOR           := Color(0.957, 0.702, 0.247, 1.0)   ## #F4B33F amber
-const RAMP_ACTIVE_COLOR    := Color(1.0,   0.85,  0.4,   1.0)   ## brighter amber
-const RAMP_GLOW            := Color(1.0,   0.75,  0.3,   0.4)   ## amber glow
+const RAMP_ACTIVE_ENERGY   := 1.8                                      ## glow intensity when box present
+const RAMP_GLOW_ENERGY     := 0.5                                      ## default glow intensity
 
 ## Conveyor: cool cyan — matches FACE_ENERGY palette
 const CONVEYOR_COLOR       := Color(0.290, 0.780, 0.949, 1.0)   ## #4AC7F2 cyan
-const CONVEYOR_ACTIVE_COLOR := Color(0.55,  0.98,  1.0,   1.0)   ## brighter cyan
-const CONVEYOR_GLOW        := Color(0.35,  0.88,  1.0,   0.4)   ## cyan glow
+const CONVEYOR_ACTIVE_ENERGY := 2.0                                     ## glow intensity when box present
+const CONVEYOR_GLOW_ENERGY  := 0.5                                      ## default glow intensity
 
 ## Rotating Platform: brick red — matches FACE_HEAVY palette
-const ROTATING_COLOR       := Color(0.886, 0.373, 0.224, 1.0)   ## #E25F39 brick red
-const ROTATING_ACTIVE_COLOR := Color(1.0,   0.55,  0.4,   1.0)   ## brighter red
-const ROTATING_GLOW        := Color(0.9,   0.4,   0.3,   0.4)   ## red glow
+const ROTATING_COLOR        := Color(0.886, 0.373, 0.224, 1.0)   ## #E25F39 brick red
+const ROTATING_ACTIVE_ENERGY := 1.8                                      ## glow intensity when box present
+const ROTATING_GLOW_ENERGY  := 0.4                                      ## default glow intensity
+# ── Animation & Timing ──────────────────────────────────────────────────────────
+## Player
+const PLAYER_MOVE_DURATION      := 0.14
+const PLAYER_DENY_RESTORE_DURATION := 0.25
+
+## RollingBox
+const BOX_ROLL_DURATION         := 0.22
+
+## FloorButton
+const BUTTON_PRESS_DURATION    := 0.12
+const BUTTON_PRESS_OFFSET_Y     := -0.08
+
+## SlidingDoor
+const DOOR_SLIDE_DURATION      := 0.18
+const DOOR_OPEN_OFFSET_Y        := 2.2
+
+## ConveyorTile
+const CONVEYOR_INTERVAL         := 0.8
+
+## RampTile / RotatingPlatformTile
+const TERRAIN_GLOW_TWEEN_DURATION := 0.2
+
+## RotatingPlatformTile
+const ROTATION_ANIM_DURATION    := 0.3
+
+## EnergySocket
+const ENERGY_POWER_DURATION      := 0.14
+
+## GoalPad
+const GOAL_ACTIVATE_DURATION    := 0.16
+
+## NormalEnemy
+const ENEMY_DEFEAT_DURATION    := 0.2

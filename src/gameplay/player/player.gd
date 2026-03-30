@@ -4,7 +4,7 @@ class_name Player
 
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
-@export var move_duration := 0.14
+@export var move_duration := DesignTokens.PLAYER_MOVE_DURATION
 const PLAYER_HEIGHT := 0.75
 
 var grid_position: Vector2i = Vector2i.ZERO
@@ -78,7 +78,8 @@ func _on_move_finished() -> void:
 	is_busy = false
 	if _grid_motor != null and _grid_motor.has_method("notify_entity_move_finished"):
 		_grid_motor.notify_entity_move_finished(self, _previous_grid_position, grid_position)
-	AudioManager.play_player_step()
+	if AudioManager and AudioManager.has_method('play_player_step'):
+	    AudioManager.play_player_step()
 
 func _on_move_denied(actor: Node, reason: String) -> void:
 	if actor != self:
@@ -123,6 +124,12 @@ func _process(delta: float) -> void:
 	## global_position directly, so the bob is purely visual).
 	_bob_time += delta
 	visual.position.y = sin(_bob_time * TAU / 1.5) * 0.04
+
+
+func _exit_tree() -> void:
+	## Clean up duplicated material to prevent memory leaks
+	if _body_mat != null:
+		_body_mat = null
 
 func _start_marker_ring_pulse() -> void:
 	if _marker_ring_mat == null:

@@ -27,6 +27,15 @@ func _ready() -> void:
 
 	_bind_grid_motor()
 	_apply_visual_state(false)
+	_update_dir_pillar()
+
+func _update_dir_pillar() -> void:
+	## Rotate direction pillar to point in ramp direction
+	var pillar = get_node_or_null("Visual/DirPillar")
+	if pillar == null:
+		return
+	var yaw := atan2(-direction.x, -direction.y)
+	pillar.rotation.y = yaw
 
 func _bind_grid_motor() -> void:
 	_grid_motor = get_tree().get_first_node_in_group("grid_motor")
@@ -47,13 +56,14 @@ func _on_entity_move_finished(entity: Node, origin: Vector2i, target: Vector2i) 
 	_update_active_state()
 
 func _apply_ramp_transform(box: Node, roll_direction: Vector2i) -> void:
-	if not box.has_method("_apply_ramp_transform"):
-		push_warning("RampTile: box has no _apply_ramp_transform — skipping")
+	if not box.has_method("apply_ramp_transform"):
+		push_warning("RampTile: box has no apply_ramp_transform — skipping")
 		return
 
-	box._apply_ramp_transform(roll_direction)
+	box.apply_ramp_transform(roll_direction)
 	terrain_activated.emit(box, "ramp")
-	AudioManager.play_terrain_sfx("ramp_activate")
+	if AudioManager and AudioManager.has_method('play_terrain_sfx'):
+	    AudioManager.play_terrain_sfx("ramp_activate")
 
 func _update_active_state() -> void:
 	var occupant: Node = null
@@ -78,4 +88,4 @@ func _apply_visual_state(instant: bool = false) -> void:
 		glow_light.light_energy = target_energy
 	else:
 		var tween := create_tween()
-		tween.tween_property(glow_light, "light_energy", target_energy, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.tween_property(glow_light, "light_energy", target_energy, DesignTokens.TERRAIN_GLOW_TWEEN_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

@@ -5,7 +5,7 @@ class_name EnergySocket
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const SOCKET_HEIGHT := 0.03
-@export var power_animation_duration := 0.14
+@export var power_animation_duration := DesignTokens.ENERGY_POWER_DURATION
 
 @export var accepted_face_kinds := PackedStringArray(["ENERGY"])
 @export var linked_doors: Array[NodePath] = []
@@ -56,7 +56,8 @@ func _refresh_state(force_visual_refresh := false) -> void:
 
 	is_powered = next_powered
 	if is_powered:
-		AudioManager.play_energy_socket_activate()
+		if AudioManager and AudioManager.has_method('play_energy_socket_activate'):
+		    AudioManager.play_energy_socket_activate()
 	_apply_visual_state(force_visual_refresh)
 	_sync_links()
 

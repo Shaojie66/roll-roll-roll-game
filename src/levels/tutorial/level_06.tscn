@@ -1,0 +1,155 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://src/levels/shared/level_root.gd" id="1"]
+[ext_resource type="Script" path="res://src/core/grid/grid_motor.gd" id="2"]
+[ext_resource type="PackedScene" path="res://src/gameplay/player/player.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://src/gameplay/boxes/rolling_box.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://src/gameplay/interactables/terrain/ramp_tile.tscn" id="5_ramp"]
+[ext_resource type="PackedScene" path="res://src/gameplay/interactables/buttons/floor_button.tscn" id="6_btn"]
+[ext_resource type="PackedScene" path="res://src/gameplay/interactables/doors/sliding_door.tscn" id="7_door"]
+[ext_resource type="PackedScene" path="res://src/gameplay/interactables/goals/goal_pad.tscn" id="8_goal"]
+[ext_resource type="PackedScene" path="res://src/gameplay/terrain/wall_block.tscn" id="9_wall"]
+[ext_resource type="Shader" path="res://src/core/shared/floor_checkerboard.gdshader" id="99"]
+[ext_resource type="Environment" path="res://src/core/shared/toy_port_env.tres" id="100"]
+
+[sub_resource type="BoxMesh" id="1"]
+size = Vector3(18, 0.4, 12)
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.18, 0.22, 0.28, 1)
+roughness = 0.85
+metallic = 0.1
+
+[sub_resource type="ShaderMaterial" id="FloorShader"]
+shader = ExtResource("99")
+shader_parameter/cell_size = 2.0
+shader_parameter/dark_tile = Color(0.22, 0.265, 0.34, 1.0)
+shader_parameter/light_tile = Color(0.295, 0.345, 0.42, 1.0)
+shader_parameter/grid_line = Color(0.14, 0.18, 0.24, 1.0)
+shader_parameter/grid_line_width = 0.04
+
+; L6: Ramp Introduction
+; Player at (2,1), Box at (3,3) top=HEAVY, Ramp at (3,4) dir=DOWN
+; Goal button at (5,6) requires ENERGY
+; Solution: push box DOWN onto ramp → HEAVY→ENERGY → push right twice to button
+; Intended: player learns ramp changes box face
+
+[node name="Level06" type="Node3D"]
+script = ExtResource("1")
+start_hint_text = "坡道会改变箱子顶面。不同方向进入，变化不同。"
+completed_hint_text = "第三课完成。按 R 可以重开。"
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("100")
+
+[node name="GridMotor" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+position = Vector3(9, -0.2, 6)
+mesh = SubResource("1")
+surface_material_override/0 = SubResource("FloorShader")
+
+; Player at (2,1) = world(4, 0.75, 2)
+[node name="Player" parent="." instance=ExtResource("3")]
+position = Vector3(4, 0.75, 2)
+
+; Box at (3,3) = world(6, 0.5, 6), initial_top_face=HEAVY
+[node name="RollingBox" parent="." instance=ExtResource("4")]
+position = Vector3(6, 0.5, 6)
+initial_top_face = 4  ; FaceId.HEAVY
+
+; Ramp at (3,4) = world(6, 0, 8), direction DOWN
+; Entry from (3,3) moving DOWN: HEAVY→ENERGY ✓
+[node name="Ramp" parent="." instance=ExtResource("5_ramp")]
+position = Vector3(6, 0, 8)
+direction = Vector2i(0, 1)  ; DOWN
+
+; FloorButton at (5,6) = world(10, 0, 12), requires ENERGY
+[node name="FloorButton" parent="." instance=ExtResource("6_btn")]
+position = Vector3(10, 0, 12)
+accepted_face_kinds = PackedStringArray(["ENERGY"])
+linked_doors = Array[NodePath]([NodePath("../SlidingDoor")])
+
+; Door at (6,6) = world(12, 0, 12)
+[node name="SlidingDoor" parent="." instance=ExtResource("7_door")]
+position = Vector3(12, 0, 12)
+
+; Goal at (7,6) = world(14, 0, 12)
+[node name="GoalPad" parent="." instance=ExtResource("8_goal")]
+position = Vector3(14, 0, 12)
+
+; Border walls: 9-col x 6-row playable (x: 0-9, y: 0-7)
+; Left column (x=0)
+[node name="W_L0" parent="." instance=ExtResource("9_wall")]
+position = Vector3(0, 1, 0)
+[node name="W_L1" parent="." instance=ExtResource("9_wall")]
+position = Vector3(0, 1, 2)
+[node name="W_L2" parent="." instance=ExtResource("9_wall")]
+position = Vector3(0, 1, 4)
+[node name="W_L3" parent="." instance=ExtResource("9_wall")]
+position = Vector3(0, 1, 6)
+[node name="W_L4" parent="." instance=ExtResource("9_wall")]
+position = Vector3(0, 1, 8)
+[node name="W_L5" parent="." instance=ExtResource("9_wall")]
+position = Vector3(0, 1, 10)
+[node name="W_L6" parent="." instance=ExtResource("9_wall")]
+position = Vector3(0, 1, 12)
+; Right column (x=9)
+[node name="W_R0" parent="." instance=ExtResource("9_wall")]
+position = Vector3(18, 1, 0)
+[node name="W_R1" parent="." instance=ExtResource("9_wall")]
+position = Vector3(18, 1, 2)
+[node name="W_R2" parent="." instance=ExtResource("9_wall")]
+position = Vector3(18, 1, 4)
+[node name="W_R3" parent="." instance=ExtResource("9_wall")]
+position = Vector3(18, 1, 6)
+[node name="W_R4" parent="." instance=ExtResource("9_wall")]
+position = Vector3(18, 1, 8)
+[node name="W_R5" parent="." instance=ExtResource("9_wall")]
+position = Vector3(18, 1, 10)
+[node name="W_R6" parent="." instance=ExtResource("9_wall")]
+position = Vector3(18, 1, 12)
+; Top border (y=0)
+[node name="W_T1" parent="." instance=ExtResource("9_wall")]
+position = Vector3(4, 1, 0)
+[node name="W_T2" parent="." instance=ExtResource("9_wall")]
+position = Vector3(6, 1, 0)
+[node name="W_T3" parent="." instance=ExtResource("9_wall")]
+position = Vector3(8, 1, 0)
+[node name="W_T4" parent="." instance=ExtResource("9_wall")]
+position = Vector3(10, 1, 0)
+[node name="W_T5" parent="." instance=ExtResource("9_wall")]
+position = Vector3(12, 1, 0)
+[node name="W_T6" parent="." instance=ExtResource("9_wall")]
+position = Vector3(14, 1, 0)
+[node name="W_T7" parent="." instance=ExtResource("9_wall")]
+position = Vector3(16, 1, 0)
+; Bottom border (y=7)
+[node name="W_B1" parent="." instance=ExtResource("9_wall")]
+position = Vector3(4, 1, 14)
+[node name="W_B2" parent="." instance=ExtResource("9_wall")]
+position = Vector3(6, 1, 14)
+[node name="W_B3" parent="." instance=ExtResource("9_wall")]
+position = Vector3(8, 1, 14)
+[node name="W_B4" parent="." instance=ExtResource("9_wall")]
+position = Vector3(10, 1, 14)
+[node name="W_B5" parent="." instance=ExtResource("9_wall")]
+position = Vector3(12, 1, 14)
+[node name="W_B6" parent="." instance=ExtResource("9_wall")]
+position = Vector3(14, 1, 14)
+[node name="W_B7" parent="." instance=ExtResource("9_wall")]
+position = Vector3(16, 1, 14)
+
+; Camera
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(9, 16, 17)
+rotation = Vector3(-1.05, 0, 0)
+fov = 52.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+light_color = Color(1.0, 0.96, 0.88, 1)
+shadow_enabled = true
+shadow_bias = 0.05
+rotation = Vector3(-0.837758, -0.593412, 0)
+light_energy = 2.2

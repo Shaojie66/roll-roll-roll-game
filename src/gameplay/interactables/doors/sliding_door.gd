@@ -4,10 +4,10 @@ class_name SlidingDoor
 
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
-@export var slide_animation_duration := 0.18
+@export var slide_animation_duration := DesignTokens.DOOR_SLIDE_DURATION
 
 @export var starts_open := false
-@export var open_offset := Vector3(0.0, 2.2, 0.0)
+@export var open_offset := Vector3(0.0, DesignTokens.DOOR_OPEN_OFFSET_Y, 0.0)
 
 var grid_position: Vector2i = Vector2i.ZERO
 var blocks_grid_cell := true
@@ -87,7 +87,8 @@ func _open_door(instant := false) -> void:
 		_grid_motor.unregister_entity(self)
 
 	if not instant:
-		AudioManager.play_door_open()
+		if AudioManager and AudioManager.has_method('play_door_open'):
+		    AudioManager.play_door_open()
 	_apply_visual_state(true, instant)
 
 func _close_door(instant := false) -> void:
@@ -103,7 +104,8 @@ func _close_door(instant := false) -> void:
 		_grid_motor.register_entity(self)
 
 	if not instant:
-		AudioManager.play_door_close()
+		if AudioManager and AudioManager.has_method('play_door_close'):
+		    AudioManager.play_door_close()
 	_apply_visual_state(false, instant)
 
 func _apply_visual_state(open_state: bool, instant := false) -> void:

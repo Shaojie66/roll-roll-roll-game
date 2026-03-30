@@ -44,13 +44,15 @@ func _on_entity_move_finished(entity: Node, origin: Vector2i, target: Vector2i) 
 	_update_active_state()
 
 func _apply_rotation(box: Node) -> void:
-	if not box.has_method("_apply_rotation"):
-		push_warning("RotatingPlatformTile: box has no _apply_rotation — skipping")
+	if not box.has_method("apply_rotation"):
+		push_warning("RotatingPlatformTile: box has no apply_rotation — skipping")
 		return
 
-	box._apply_rotation()
-	AudioManager.play_terrain_sfx("rotating_platform")
+	box.apply_rotation()
+	if AudioManager and AudioManager.has_method('play_terrain_sfx'):
+	    AudioManager.play_terrain_sfx("rotating_platform")
 	terrain_activated.emit(box, "rotating_platform")
+	_do_rotation_animation()
 
 func _update_active_state() -> void:
 	var occupant: Node = null
@@ -64,6 +66,14 @@ func _update_active_state() -> void:
 	_is_active = next_active
 	_apply_visual_state(false)
 
+func _do_rotation_animation() -> void:
+	## Animate the visual body rotating 90° clockwise when box enters
+	var visual = get_node_or_null("Visual")
+	if visual == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(visual, "rotation:y", visual.rotation.y + deg_to_rad(90.0), DesignTokens.ROTATION_ANIM_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
 func _apply_visual_state(instant: bool = false) -> void:
 	if glow_light == null:
 		return
@@ -75,4 +85,4 @@ func _apply_visual_state(instant: bool = false) -> void:
 		glow_light.light_energy = target_energy
 	else:
 		var tween := create_tween()
-		tween.tween_property(glow_light, "light_energy", target_energy, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.tween_property(glow_light, "light_energy", target_energy, DesignTokens.TERRAIN_GLOW_TWEEN_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

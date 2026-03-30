@@ -2,14 +2,14 @@ extends Node3D
 
 class_name ConveyorTile
 
-## Terrain tile that auto-pushes a RollingBox every CONVEYOR_INTERVAL seconds.
+## Terrain tile that auto-pushes a RollingBox every DesignTokens.CONVEYOR_INTERVAL seconds.
 ## The conveyor does not move the player — only boxes.
 ## Design rule: conveyor tiles are never placed on player-walkable cells.
 
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const TERRAIN_HEIGHT := 0.0
-const CONVEYOR_INTERVAL := 0.8  ## seconds between auto-pushes
+const DesignTokens.CONVEYOR_INTERVAL := DesignTokens.DesignTokens.CONVEYOR_INTERVAL  ## seconds between auto-pushes
 
 @export var conveyor_direction: Vector2i = Vector2i.RIGHT
 
@@ -30,11 +30,22 @@ func _ready() -> void:
 	grid_position = GridCoordRef.world_to_grid(global_position)
 	global_position = GridCoordRef.grid_to_world(grid_position, TERRAIN_HEIGHT)
 
-	push_timer.wait_time = CONVEYOR_INTERVAL
+	push_timer.wait_time = DesignTokens.DesignTokens.CONVEYOR_INTERVAL
 	push_timer.timeout.connect(_on_push_timer)
 
 	_bind_grid_motor()
 	_apply_visual_state(false)
+	_update_arrow_rotation()
+
+func _update_arrow_rotation() -> void:
+	## Rotate arrow meshes to point in conveyor direction
+	var arrow1 = get_node_or_null("Visual/Arrow1")
+	var arrow2 = get_node_or_null("Visual/Arrow2")
+	if arrow1 == null or arrow2 == null:
+		return
+	var yaw := atan2(-conveyor_direction.x, -conveyor_direction.y)
+	arrow1.rotation.y = yaw
+	arrow2.rotation.y = yaw
 
 func _bind_grid_motor() -> void:
 	_grid_motor = get_tree().get_first_node_in_group("grid_motor")
@@ -97,7 +108,8 @@ func _on_push_timer() -> void:
 
 	var result: bool = _grid_motor.try_push_box(_box, conveyor_direction)
 	if result:
-		AudioManager.play_terrain_sfx("conveyor")
+		if AudioManager and AudioManager.has_method('play_terrain_sfx'):
+		    AudioManager.play_terrain_sfx("conveyor")
 		terrain_activated.emit(_box, "conveyor")
 		## After a successful push, box has moved off this cell.
 		## _on_entity_move_finished will fire for origin==grid_position,

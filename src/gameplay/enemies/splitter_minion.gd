@@ -1,14 +1,19 @@
 extends Node3D
 
-class_name NormalEnemy
+class_name SplitterMinion
+
+## Small enemy spawned by SplitterEnemy. Cannot split further.
+## 50% size of normal enemy.
 
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const ENEMY_HEIGHT := 0.45
+const MINION_SIZE := 0.5
+
 @export var defeat_duration := DesignTokens.ENEMY_DEFEAT_DURATION
 
 @export var accepted_face_kinds := PackedStringArray(["IMPACT", "HEAVY"])
-@export var enemy_group_name := "normal_enemy"
+@export var enemy_group_name := "splitter_minion"
 
 var grid_position: Vector2i = Vector2i.ZERO
 var blocks_grid_cell := true
@@ -30,15 +35,23 @@ func _ready() -> void:
 	grid_position = GridCoordRef.world_to_grid(global_position)
 	global_position = GridCoordRef.grid_to_world(grid_position, ENEMY_HEIGHT)
 
-	## Register synchronously — deferred registration causes a race where the
-	## entity is not yet in the grid motor's occupiers map when collision
-	## checks run.
 	_bind_grid_motor()
 
-	## Self-register defeat sound with AudioManager (replaces global node_added listener).
-	if AudioManager and AudioManager.has_method('play_enemy_defeat'):
-		if not defeated.is_connected(AudioManager.play_enemy_defeat):
-			defeated.connect(AudioManager.play_enemy_defeat)
+	## Spawn animation: scale from 0 to 1
+	visual.scale = Vector3.ONE * MINION_SIZE
+
+	var tween := create_tween()
+	tween.tween_property(
+		visual,
+		"scale",
+		Vector3.ONE,
+		MINION_SPAWN_DURATION
+	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func _bind_grid_motor() -> void:
+	_grid_motor = get_tree().get_first_node_in_group("grid_motor")
+	if _grid_motor != null:
+		_grid_motor.register_entity(self)
 
 func can_be_defeated_by(face_kind: String) -> bool:
 	return accepted_face_kinds.has(face_kind)
@@ -50,7 +63,7 @@ func defeat(direction: Vector2i, face_kind: String) -> void:
 	is_defeated = true
 	blocks_grid_cell = false
 
-	var launch_offset := Vector3(direction.x * 0.65, 0.55, direction.y * 0.65)
+	var launch_offset := Vector3(direction.x * 0.4, 0.35, direction.y * 0.4)
 	var spin_direction := 1.0
 	if direction.x < 0 or direction.y < 0:
 		spin_direction = -1.0
@@ -80,8 +93,3 @@ func defeat(direction: Vector2i, face_kind: String) -> void:
 	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	tween.finished.connect(queue_free)
 	defeated.emit()
-
-func _bind_grid_motor() -> void:
-	_grid_motor = get_tree().get_first_node_in_group("grid_motor")
-	if _grid_motor != null:
-		_grid_motor.register_entity(self)

@@ -30,3 +30,7 @@ window/stretch/aspect="expand"
 
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.094118, 0.101961, 0.12549, 1)
+
+[editor_plugins]
+
+plugin=["res://addons/gut_plugin/plugin.cfg"]

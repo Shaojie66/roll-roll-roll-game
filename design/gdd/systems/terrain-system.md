@@ -1,8 +1,9 @@
 # Terrain System — 地形机制
 
-> **Status**: Draft
+> **Status**: Implemented
 > **Author**: Game Designer (reverse-documented from GridMotor + RollingBox)
 > **Last Updated**: 2026-03-30
+> **Implementation Complete**: S3-005 (RampTile), S3-006 (ConveyorTile), S3-007 (RotatingPlatformTile)
 > **Implements Pillar**: 滚动就是解谜 / 可爱外表，硬核规则
 
 ## Overview
@@ -54,7 +55,7 @@ signal terrain_activated(box: Node, terrain_type: StringName)
 | UP (0, -1) | 原来的前侧 (front) | X轴 +90° |
 | DOWN (0, +1) | 原来的后侧 (back) | X轴 -90° |
 
-**RollingBox 内部变换** (`_apply_ramp_transform`):
+**RollingBox 内部变换** (`apply_ramp_transform`):
 
 ```
 当前 orientation = {top: A, bottom: B, left: C, right: D, front: E, back: F}
@@ -237,14 +238,14 @@ apply_rotation():
 
 ## Acceptance Criteria
 
-- [ ] 坡道正确旋转箱子朝向（4 个 cardinal 方向各验证一次）
-- [ ] 传送带在箱子就绪时自动推动（不推动 is_busy == true 的箱子）
-- [ ] 传送带推动被墙壁阻挡时跳过 tick，不卡死
-- [ ] 旋转平台每次激活旋转箱子 90°（顺时针）
-- [ ] 所有地形格子在 GridMotor.occupiers 中正确注册（blocks_grid_cell = false）
-- [ ] 地形激活时 AudioManager 播放对应 SFX（ramp_activate / conveyor_push / rotating_platform_rotate）
-- [ ] 地形视觉状态（default / active）正确切换
-- [ ] 地形 GDD 中 5 个 Open Questions 全部有 YES/NO 决定
+- [x] 坡道正确旋转箱子朝向（4 个 cardinal 方向各验证一次）
+- [x] 传送带在箱子就绪时自动推动（不推动 is_busy == true 的箱子）
+- [x] 传送带推动被墙壁阻挡时跳过 tick，不卡死
+- [x] 旋转平台每次激活旋转箱子 90°（顺时针）
+- [x] 所有地形格子在 GridMotor.occupiers 中正确注册（blocks_grid_cell = false）
+- [x] 地形激活时 AudioManager 播放对应 SFX（ramp_activate / conveyor_push / rotating_platform_rotate）
+- [x] 地形视觉状态（default / active）正确切换
+- [x] 地形 GDD 中 5 个 Open Questions 全部有 YES/NO 决定
 
 ---
 

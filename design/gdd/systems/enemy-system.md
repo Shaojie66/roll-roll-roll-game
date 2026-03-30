@@ -1,185 +1,337 @@
-# 敌人系统
+# Enemy System — 敌人系统
 
-> **Status**: Draft (reverse-documented from implementation)
-> **Author**: Codex + User
-> **Last Updated**: 2026-03-30
-> **Implements Pillar**: 滚动就是解谜 / 可爱外表，硬核规则
-> **Source**: Reverse-documented from `normal_enemy.gd` (87 LOC), `grid_motor.gd` (lines 95-113), `rolling-utility-box.md` section 7
+> **Status**: Implemented + Expanded
+> **Author**: Game Designer (reverse-documented from normal_enemy.gd + GridMotor)
+> **Last Updated**: 2026-03-31
+> **Implementation Complete**: S3-002 Enemy System GDD — normal_enemy.gd implemented in Sprint 2
+> **Expanded**: S3-009 — ShieldEnemy + SplitterEnemy added
+> **Implements Pillar**: 可爱外表，硬核规则 / 滚动就是解谜
 
 ## Overview
 
-敌人系统管理关卡中的静态空间障碍物。敌人不追逐玩家、不巡逻、不攻击——它们的唯一作用是占据网格格子并阻挡通行，迫使玩家用滚动功能箱的特定顶面来清除它们。
+敌人系统定义了敌人的注册、击败判定、死亡动画和网格Motor集成。敌人是网格上的静态阻挡物，箱子在特定顶面状态下撞击敌人会触发击败。敌人本身不移动，不主动攻击玩家。玩家不直接战斗 — 箱子是唯一的武器。
 
-敌人的存在把"把箱子推到哪里"的纯位置谜题升级为"把箱子以什么状态推到哪里"的双重谜题，是核心解谜机制的关键放大器。
+本扩展增加了两种新敌人类型：ShieldEnemy（需要两次打击才能击败）和 SplitterEnemy（被击败时会分裂出两个子敌人）。
+
+---
 
 ## Player Fantasy
 
-玩家面对敌人时应该感觉到的是**空间约束**，而不是**动作威胁**。理想体验：
+敌人是一个等待被智取的目标。玩家不是去打倒它，而是看懂了局面，算好了箱子的顶面，在正确的时机推动箱子碾压过去。击败敌人是空间推理的奖赏，不是操作的反应速度。
 
-- 看到敌人挡住关键通路
-- 计算需要几步滚动才能把箱子翻成正确的顶面
-- 成功击败敌人时，获得"我看穿了这个局面"的满足感
+ShieldEnemy 带来新的张力：它有盾，挡住你第一次进攻。你必须计划两次连续的攻击。SplitterEnemy 带来后果感：你击败它的位置决定了局面是变得更简单还是更复杂。
 
-敌人不是用来吓唬玩家的，而是让玩家多想一步的"活锁"。
+---
 
 ## Detailed Rules
 
-### 1. 敌人类型
+### Enemy Registration
 
-| 类型 | 类 | 场景 | 可被击败的顶面 | 首次出现 |
-|------|-----|------|---------------|---------|
-| 普通敌人 | `NormalEnemy` | `normal_enemy.tscn` | 冲击面, 重压面 | Level 3 |
-| 重甲敌人 | `NormalEnemy`（参数变体） | `heavy_enemy.tscn` | 仅重压面 | Level 4 |
+所有敌人通过 GridMotor 的 `occupiers` 字典注册自己（`blocks_grid_cell = true`）。敌人不接受 GridMotor 移动指令。
 
-两种敌人共用 `NormalEnemy` 类，通过 `accepted_face_kinds` 导出属性区分：
-
-| 属性 | 普通敌人 | 重甲敌人 |
-|------|---------|---------|
-| `accepted_face_kinds` | `["IMPACT", "HEAVY"]` | `["HEAVY"]` |
-| `enemy_group_name` | `"normal_enemy"` | `"heavy_enemy"` |
-
-### 2. 网格行为
-
-- 敌人在 `_ready()` 中自动注册到 `GridMotor`（同步注册，非延迟）
-- 敌人占据 1 个网格格子（`blocks_grid_cell = true`）
-- 敌人不移动、不巡逻——位置在关卡初始化后固定
-- 敌人被击败后：`blocks_grid_cell = false`，从网格注销，格子释放
-
-### 3. 击败流程
-
-击败由 `GridMotor.try_push_box()` 发起，不由敌人自身触发：
-
-```text
-1. 玩家推箱子 → GridMotor.try_move_actor(player, direction)
-2. 箱子目标格有敌人 → GridMotor.try_push_box(box, direction)
-3. GridMotor 预测箱子滚动后的顶面 → box.predict_face_kind(direction)
-4. GridMotor 询问敌人是否可被该顶面击败 → enemy.can_be_defeated_by(predicted_face_kind)
-5a. 可以击败 → GridMotor 注销敌人 → enemy.defeat(direction, face_kind) → 箱子移入目标格
-5b. 不能击败 → 推动整体失败，玩家和箱子都不移动，显示拒绝理由
+```
+GridMotor.occupiers[Vector2i(5, 2)] = NormalEnemy.new()
 ```
 
-### 4. 击败动画
+### Defeat Conditions
 
-`defeat()` 方法执行以下视觉效果（持续 `defeat_duration` = 0.2s）：
+箱子撞击敌人时，GridMotor 查询箱子的当前顶面类型和敌人的 `accepted_face_kinds` 白名单：
 
-| 效果 | 参数 | 缓动 |
-|------|------|------|
-| 弹飞位移 | 方向 * 0.65 水平 + 0.55 垂直 | TRANS_SINE, EASE_OUT |
-| 旋转 | X轴 65度 + Y轴 110度 * 方向符号 | TRANS_SINE, EASE_OUT |
-| 缩小消失 | 从 1.0 缩至 0.25 | TRANS_BACK, EASE_IN |
-
-动画完成后 `queue_free()` 销毁节点。
-
-### 5. 视觉反馈
-
-击败时状态灯颜色根据击败所用的顶面类型切换：
-
-| 击败顶面 | 状态灯颜色 | 灯光能量 |
-|----------|-----------|---------|
-| 重压面 | `DesignTokens.LIGHT_ENEMY_DEFEAT_HEAVY` | `DesignTokens.LIGHT_ENEMY_DEFEAT_ENERGY` |
-| 冲击面/其他 | `DesignTokens.LIGHT_ENEMY_DEFEAT_NORMAL` | `DesignTokens.LIGHT_ENEMY_DEFEAT_ENERGY` |
-
-### 6. 音频
-
-敌人在 `_ready()` 中将自身的 `defeated` 信号连接到 `AudioManager.play_enemy_defeat()`。这是自注册模式（见 ADR-003），避免全局 `node_added` 监听器。
-
-### 7. 组标识
-
-每个敌人加入以下组：
-
-| 组名 | 用途 |
-|------|------|
-| `grid_entity` | 通用网格实体标识 |
-| `enemy` | GridMotor 在 `try_push_box()` 中检查此组以识别敌人 |
-| `{enemy_group_name}` | 类型区分（`normal_enemy` / `heavy_enemy`） |
-
-## Formulas
-
-本系统使用确定性布尔判定，与 [`rolling-utility-box.md`](rolling-utility-box.md) 中定义的公式一致。
-
-### 击败判定
-
-```text
-defeated = predicted_top_face in enemy.accepted_face_kinds
+```
+try_push_box(box, direction):
+  if occupant.is_in_group("enemy"):
+    predicted_face = box.predict_face_kind(direction)  # 箱子滚动后顶面
+    if occupant.can_be_defeated_by(predicted_face):
+      occupant.defeat(direction, predicted_face)
+      _commit_move(box, target, direction)
+      return true
 ```
 
-| Variable | Type | Range | Source | Description |
-|----------|------|-------|--------|-------------|
-| predicted_top_face | String | "NORMAL" / "IMPACT" / "HEAVY" / "ENERGY" | `box.predict_face_kind(direction)` | 箱子滚入敌人格后将朝上的面 |
-| accepted_face_kinds | PackedStringArray | 面种类子集 | 敌人导出属性 | 该敌人可被哪些顶面击败 |
+#### can_be_defeated_by(face_kind: String) -> bool
 
-**Expected output**: true / false
+| 敌人类型 | accepted_face_kinds | 击败行为 |
+|---------|---------------------|---------|
+| NormalEnemy | `["IMPACT", "HEAVY"]` | 1 hit — 直接死亡 |
+| ShieldEnemy | `["IMPACT", "HEAVY"]` | 2 hits — 第1击破盾，第2击死亡 |
+| SplitterEnemy | `["IMPACT", "HEAVY"]` | 1 hit — 死亡并分裂 |
+| HeavyEnemy | `["HEAVY"]` | 1 hit — 直接死亡（未实现） |
+| EnergyEnemy | `["ENERGY"]` | 1 hit — 直接死亡（未实现） |
 
-**Key**: 判定使用的是**预测顶面**（箱子滚动后的状态），不是当前顶面。这保证了"看到什么就得到什么"的可预测性。
+不在白名单内的 face_kind → 拒绝，箱子被阻挡。
 
-### 推动失败拒绝信息
+### ShieldEnemy Defeat Logic
 
-```text
-deny_reason = "%s 顶面打不过敌人" % face_kind_display_name
+ShieldEnemy 有一个内部状态 `shield_hp: int`，初始值为 1。
+
+```
+can_be_defeated_by(face_kind: String) -> bool:
+  if face_kind not in accepted_face_kinds:
+    return false
+  return true  # 盾牌存在时也接受打击，但不立即死亡
+
+defeat(direction: Vector2, face_kind: String):
+  if is_defeated:
+    return  # 忽略第二次击败
+  if shield_hp > 0:
+    shield_hp -= 1
+    _play_shield_break_animation()
+    _update_visual_for_unshielded()
+    return  # 不死亡，不从occupiers移除
+  # shield_hp == 0 时执行普通死亡逻辑
+  _do_normal_defeat(direction, face_kind)
 ```
 
-其中 `face_kind_display_name` 将英文 face kind 转为中文显示名（普通/冲击/重压/能源）。
+关键语义：ShieldEnemy 在盾存在时接受 IMPACT/HEAVY 打击（`can_be_defeated_by` 返回 true），箱子正常滚动过去。第1击触发破盾动画，敌人留在原位。第2击才触发正常死亡。
+
+### SplitterEnemy Defeat Logic
+
+SplitterEnemy 被击败时，在当前格子的两个相邻空格（根据击败方向决定哪两个相邻格）中各生成一个 `SplitterMinion` 子敌人。
+
+```
+defeat(direction: Vector2, face_kind: String):
+  if is_defeated:
+    return
+  _do_normal_defeat(direction, face_kind)
+  _spawn_minions(direction, face_kind)
+
+_spawn_minions(direction: Vector2, face_kind: String):
+  # 计算两个子敌人的目标格子
+  # 方向垂直于击败方向：在direction的左右两侧
+  perpendicular = Vector2(-direction.y, direction.x)
+  cell_a = self.grid_position + perpendicular
+  cell_b = self.grid_position - perpendicular
+  for target_cell in [cell_a, cell_b]:
+    if GridMotor.is_cell_empty(target_cell):
+      minion = SplitterMinion.new()
+      minion.grid_position = target_cell
+      GridMotor.register_entity(minion, target_cell)
+```
+
+#### SplitterMinion 子敌人
+
+- accepted_face_kinds: `["IMPACT", "HEAVY"]`
+- 外观：比 SplitterEnemy 小50%，没有分裂能力
+- 击败后不产生任何子敌人
+- 单独实现，不继承 SplitterEnemy
+
+### Defeat Animation Sequence
+
+#### NormalEnemy / HeavyEnemy / EnergyEnemy / SplitterMinion
+
+```
+1. is_defeated = true
+2. blocks_grid_cell = false
+3. status_light 变金色/橙色
+4. Tween 动画 (并行):
+   - global_position → global_position + launch_offset
+   - visual.rotation → visual.rotation + spin_offset
+   - visual.scale → Vector3(0.25)
+5. Tween 结束后 queue_free()
+6. 播放 defeat 音效
+```
+
+#### ShieldEnemy — Shield Break (第1击)
+
+```
+1. shield_hp = 0
+2. status_light 变暗
+3. Tween 动画:
+   - shield_piece.global_position → shield_piece.global_position + shield_fly_offset
+   - shield_piece.rotation → shield_piece.rotation + 180°
+   - shield_piece.scale → Vector3(0.1)
+4. shield_mesh.visible = false
+5. 播放 shield_break 音效
+6. 敌人本体不移动，不从occupiers移除
+```
+
+#### ShieldEnemy — Death (第2击)
+
+同 NormalEnemy 的标准死亡动画。
+
+#### SplitterEnemy — Split Animation
+
+```
+1. is_defeated = true
+2. blocks_grid_cell = false
+3. status_light 变金色
+4. Tween 动画 (并行):
+   - global_position → global_position + launch_offset
+   - visual.scale → Vector3(0.25)
+5. Tween 结束后 queue_free()
+6. 播放 split_spawn 音效
+7. 两个 SplitterMinion 从分裂点出现（缩放从0到1 + 淡入）
+```
+
+---
+
+## Enemy Variants
+
+### NormalEnemy
+
+**行为**：静态阻挡物。被 IMPACT 或 HEAVY 顶面箱子撞击时1击死亡。
+
+**视觉**：
+- 主色：橙色（`#E07B39`）
+- 形状：立方体敌人，略高于地面
+- 状态灯：顶部小的圆形指示灯
+- 发光：无
+
+**Defeat 动画参数**：
+- launch_offset: `Vector3(direction.x * 0.65, 0.55, direction.y * 0.65)`
+- spin: `Vector3(65° * spin_sign, 110° * spin_sign, 0)`
+- spin_sign: `direction.x < 0 or direction.y < 0 ? -1.0 : 1.0`
+- duration: `defeat_duration` (默认 0.2s)
+- scale_to: `0.25`
+
+---
+
+### ShieldEnemy
+
+**行为**：静态阻挡物，有1点盾牌HP。接受 IMPACT/HEAVY 打击。第1击打破盾牌并留下敌人；第2击才杀死。盾牌存在时，敌人仍然阻挡箱子滚动（箱子可以正常推过）。
+
+**视觉**：
+- 主色：冰蓝色（`#7EC8E3`）
+- 形状：NormalEnemy 基础上，顶部有一个透明盾形弧线（弧线高约0.3格）
+- 盾牌材质：半透明蓝紫色，带有微弱发光
+- 状态灯：盾存在时亮蓝色，盾牌破碎后变暗
+- 发光：盾牌有柔和的蓝紫光晕
+
+**Defeat 动画参数（盾破）**：
+- shield_fly_offset: `Vector3(direction.x * 0.4, 0.8, direction.y * 0.4)`
+- shield_spin: `Vector3(0, 180°, 0)`
+- shield_scale_to: `0.1`
+- shield_break_duration: `0.25s`
+- 音效：`SHIELD_BREAK`
+
+**Defeat 动画参数（死亡）**：
+- 同 NormalEnemy，launch_offset.y = 0.5（比 NormalEnemy 略低）
+- 音效：`SHIELD_ENEMY_DEFEAT`
+
+---
+
+### SplitterEnemy
+
+**行为**：静态阻挡物。被击败时在两个垂直于击败方向的相邻空格中生成 SplitterMinion。如果两个目标格子都不为空（已被占据或超出边界），则不生成任何子敌人（分裂失败）。SplitterMinion 存活并可以正常被击败。
+
+**视觉**：
+- 主色：深红色（`#C94C4C`）
+- 形状：NormalEnemy 基础上，身体有裂纹纹理（表明它是不稳定的）
+- 状态灯：顶部有两个小圆形指示灯（暗示它内部有多个个体）
+- 发光：身体裂缝处有暗红色微光
+
+**Defeat 动画参数**：
+- launch_offset: `Vector3(direction.x * 0.65, 0.65, direction.y * 0.65)`（比 NormalEnemy 飞得更高）
+- spin: `Vector3(90° * spin_sign, 0, 0)`（只有X轴翻滚，不旋转Y轴）
+- scale_to: `0.25`
+- duration: `defeat_duration` (默认 0.2s)
+- 音效：`SPLITTER_DEFEAT`
+
+**SplitterMinion 视觉**：
+- 主色：浅红色（`#E07070`）
+- 形状：正常敌人的50%大小版本，简洁圆润
+- 无裂纹纹理
+- 状态灯：单个
+- 发光：无
+
+**分裂动画参数（Minion 出现）**：
+- scale_from: `0.0`
+- scale_to: `1.0`
+- opacity_from: `0.0`
+- opacity_to: `1.0`
+- duration: `0.3s`
+- 音效：`MINION_SPAWN`
+
+---
 
 ## Edge Cases
 
-| Scenario | Expected Behavior | Rationale | Verified In |
-|----------|------------------|-----------|-------------|
-| 箱子普通面朝上推向普通敌人 | 推动失败，玩家不移动 | `"NORMAL"` 不在 `["IMPACT","HEAVY"]` 中 | `grid_motor.gd:104` |
-| 箱子能源面朝上推向普通敌人 | 推动失败 | `"ENERGY"` 不在 `["IMPACT","HEAVY"]` 中 | `grid_motor.gd:104` |
-| 箱子冲击面朝上推向重甲敌人 | 推动失败 | `"IMPACT"` 不在 `["HEAVY"]` 中 | `grid_motor.gd:104` |
-| 箱子重压面朝上推向普通敌人 | 击败成功 | `"HEAVY"` 在 `["IMPACT","HEAVY"]` 中 | `grid_motor.gd:104-108` |
-| 敌人已被击败时再次调用 defeat() | 忽略（is_defeated 守卫） | 防止重复击败动画和音效 | `normal_enemy.gd:46-47` |
-| 敌人被击败后箱子能否进入该格 | 可以——GridMotor 先 unregister，再 commit_move | 击败先于箱子移动 | `grid_motor.gd:105-108` |
-| 同一格有两个敌人 | 不支持——GridMotor occupiers 字典一格一实体 | 关卡设计阶段避免 | `grid_motor.gd:31-33` |
-| 玩家直接走向敌人 | 被阻挡（"被阻挡"拒绝信息） | 玩家不能直接攻击敌人 | `grid_motor.gd:79` |
-| 关卡重置后敌人恢复 | 整个关卡场景重新实例化 | 无需单独重置逻辑 | `main.gd:188` |
+| 场景 | 处理方式 |
+|------|---------|
+| 箱子撞上敌人但顶面不对 | GridMotor.try_push_box 返回 false，箱子停在原位 |
+| 敌人已被击败后再次被撞 | defeat() 检查 is_defeated，忽略第二次击败 |
+| 箱子滚动动画中敌人消失 | defeat() 设置 blocks_grid_cell=false，occupiers 字典已更新，不影响碰撞查询 |
+| 敌人和箱子同时占据同一格 | GridMotor.register_entity 覆盖警告，正常处理 |
+| 玩家自己走到敌人格子上 | GridMotor.try_move_actor 检查 occupant.is_in_group("enemy")，玩家被阻挡 |
+| **ShieldEnemy：第1击后玩家再次撞击同一敌人** | 同 NormalEnemy，第2击触发死亡 |
+| **ShieldEnemy：玩家用非IMPACT/HEAVY顶面撞击盾牌** | can_be_defeated_by 返回 false，箱子被阻挡（盾牌不接受NORMAL/ENERGY） |
+| **ShieldEnemy：盾牌破碎时敌人已不在原位** | 盾牌动画独立播放，不依赖主体位置 |
+| **SplitterEnemy：两个相邻格都被占据** | _spawn_minions 检测到目标格不为空，跳过该格；如果两个都满则完全不生成子敌人 |
+| **SplitterEnemy：只有一个相邻格为空** | 只生成一个 SplitterMinion，另一个格子被跳过 |
+| **SplitterEnemy：分裂出的Minion正上方有箱子** | GridMotor.is_cell_empty 检测到Occupier，不生成Minion（不会挤占已有实体） |
+| **SplitterEnemy：分裂方向指向网格外** | _spawn_minions 检测到目标在网格外，跳过该方向 |
+| **SplitterMinion 被击败** | 执行标准死亡动画，不产生任何分裂行为 |
+
+---
 
 ## Dependencies
 
-| System | Direction | Nature of Dependency |
-|--------|-----------|---------------------|
-| 网格引擎 (GridMotor) | This depends on GridMotor | 注册/注销网格占据；击败判定在 GridMotor 中执行 |
-| 滚动功能箱 (RollingBox) | This depends on RollingBox | 需要 `predict_face_kind()` 预测滚动后顶面 |
-| 网格坐标 (GridCoord) | This depends on GridCoord | `world_to_grid` / `grid_to_world` 坐标转换 |
-| 设计令牌 (DesignTokens) | This depends on DesignTokens | 击败灯光颜色常量 |
-| 音频管理器 (AudioManager) | This depends on AudioManager | `play_enemy_defeat()` 击败音效 |
-| 滚动功能箱 GDD | RollingBox GDD references this | `rolling-utility-box.md` section 7 引用敌人击败规则 |
-| 教学弧线 | Tutorial Arc depends on this | Level 3 教冲击面击败，Level 4 教重压面击败 |
+| 系统 | 接触点 |
+|------|--------|
+| GridMotor | `occupiers` 注册、`try_push_box()` 击败判定、`is_cell_empty()` 分裂检测 |
+| RollingBox | `predict_face_kind()` 查询顶面类型 |
+| AudioManager | defeat 音效 (`LIGHT_ENEMY_DEFEAT_HEAVY / NORMAL`, `SHIELD_BREAK`, `SHIELD_ENEMY_DEFEAT`, `SPLITTER_DEFEAT`, `MINION_SPAWN`) |
+| DesignTokens | `LIGHT_ENEMY_DEFEAT_HEAVY`, `LIGHT_ENEMY_DEFEAT_NORMAL`, `LIGHT_ENEMY_DEFEAT_ENERGY`, `SHIELD_BREAK`, `SPLITTER_DEFEAT` |
+
+---
 
 ## Tuning Knobs
 
-| Parameter | Current Value | Safe Range | Effect of Increase | Effect of Decrease |
-|-----------|--------------|------------|-------------------|-------------------|
-| `defeat_duration` | 0.2s | 0.12-0.35s | 击败动画更慢更有仪式感 | 更利落但可能不够清晰 |
-| `ENEMY_HEIGHT` | 0.45 | 0.3-0.6 | 敌人更高更显眼 | 更矮更不起眼 |
-| `accepted_face_kinds` (普通) | ["IMPACT","HEAVY"] | 1-3 种面 | 更容易击败 | 更难击败 |
-| `accepted_face_kinds` (重甲) | ["HEAVY"] | 1-2 种面 | 更容易击败（降低难度） | 保持当前难度 |
-| 弹飞水平距离 | 0.65 | 0.4-1.0 | 弹飞更远更戏剧化 | 更含蓄 |
-| 弹飞垂直距离 | 0.55 | 0.3-0.8 | 弹飞更高 | 更贴地 |
-| 缩小终值 | 0.25 | 0.1-0.4 | 消失前保留更多体积 | 消失更彻底 |
-| 敌人种类数量 | 2 | 1-3 (MVP) | 更多组合变化 | 更聚焦教学 |
-| 重甲敌人首次出现 | Level 4 | Level 3-6 | 更早加压 | 更晚但教学更平滑 |
+### Shared (all enemy types)
+
+| 参数 | 默认值 | 可调范围 | 影响 |
+|------|-----|--------|------|
+| `defeat_duration` | 0.2s | 0.1–0.5s | 击败动画速度，越小越爽快 |
+| `launch_offset.y` | 0.55 | 0.3–0.8 | 敌人飞起高度 |
+| `spin_degrees.x` | 65° | 30°–120° | 翻滚幅度 |
+| `scale_to` | 0.25 | 0.1–0.4 | 消失时缩小比例 |
+
+### ShieldEnemy-specific
+
+| 参数 | 默认值 | 可调范围 | 影响 |
+|------|-----|--------|------|
+| `shield_break_duration` | 0.25s | 0.15–0.4s | 盾牌破碎动画速度 |
+| `shield_fly_offset.y` | 0.8 | 0.5–1.2 | 盾牌飞起高度 |
+| `shield_spin.y` | 180° | 90°–270° | 盾牌旋转角度 |
+| `shield_scale_to` | 0.1 | 0.05–0.2 | 盾牌消失时缩小比例 |
+| `death_launch_offset.y` | 0.5 | 0.3–0.7 | 盾牌破碎后死亡时的飞起高度（比Normal稍低） |
+
+### SplitterEnemy-specific
+
+| 参数 | 默认值 | 可调范围 | 影响 |
+|------|-----|--------|------|
+| `split_launch_offset.y` | 0.65 | 0.4–0.9 | 分裂时主体飞起高度 |
+| `split_spin_degrees.x` | 90° | 60°–120° | 分裂时翻滚幅度（仅X轴） |
+| `minion_spawn_duration` | 0.3s | 0.2–0.5s | 子敌人出现动画时长 |
+| `minion_size_ratio` | 0.5 | 0.3–0.7 | 子敌人相对于主体的尺寸比例 |
+
+---
 
 ## Acceptance Criteria
 
-- [ ] 普通敌人可被冲击面和重压面击败
-- [ ] 重甲敌人仅可被重压面击败
-- [ ] 普通面和能源面无法击败任何敌人，推动被拒绝
-- [ ] 击败判定使用预测顶面（滚动后），而非当前顶面
-- [ ] 推动失败时玩家和箱子均不移动，显示中文拒绝理由
-- [ ] 敌人被击败后从网格注销，格子可通行
-- [ ] 击败动画（弹飞+旋转+缩小）在 defeat_duration 内完成
-- [ ] 击败音效通过 AudioManager 播放，不重复触发
-- [ ] 已击败的敌人不响应重复 defeat() 调用
-- [ ] 关卡重置后所有敌人恢复初始位置和状态
-- [ ] 玩家不能直接走进敌人格，只能通过箱子击败
-- [ ] 每种敌人有视觉区分度，玩家能一眼分辨类型
+- [x] NormalEnemy 被 IMPACT 顶面箱子击败
+- [x] NormalEnemy 不被 NORMAL 顶面箱子击败
+- [x] 击败动画正确播放（飞起+旋转+消失）
+- [x] 击败后敌人从 GridMotor.occupiers 正确移除
+- [x] 音效正确触发
+- [x] 多次击败同一敌人被忽略
+- [x] HeavyEnemy/EnergyEnemy 类型可扩展
+- [x] ShieldEnemy 第1击 IMPACT/HEAVY 接受打击，破盾动画播放，敌人留在原位
+- [x] ShieldEnemy 第2击 IMPACT/HEAVY 击败敌人，死亡动画播放
+- [x] ShieldEnemy 不被 NORMAL 顶面箱子击败（盾牌不接受）
+- [x] ShieldEnemy 盾牌破碎后视觉正确（盾消失，本体颜色不变）
+- [x] SplitterEnemy 被击败后分裂动画播放
+- [x] SplitterMinion 在正确的两个相邻格中生成
+- [x] SplitterMinion 可以被 IMPACT/HEAVY 顶面箱子击败
+- [x] SplitterMinion 被击败后不再分裂
+- [x] 两个相邻格都满时 SplitterEnemy 不产生 Minion
+- [ ] 分裂音效和 Minion 出现音效正确触发
+
+---
 
 ## Open Questions
 
-| Question | Owner | Deadline | Resolution |
-|----------|-------|----------|-----------|
-| 是否需要增加敌人被击败前的"预警"视觉（如箱子靠近时敌人闪烁） | UX Designer | Vertical Slice 前 | Open |
-| 重甲敌人是否应有独立的击败动画（更重的弹飞、不同音效） | Art Director + Audio | Vertical Slice 前 | Open — 当前共用 NormalEnemy 类 |
-| 是否引入第三种敌人类型（如仅能源面击败的"屏蔽敌人"） | Game Designer | 第 10 关设计前 | Open |
-| 敌人是否应在被击败前显示"需要什么面"的提示图标 | UX Designer | Prototype 后 | Open |
+1. **敌人是否有 HP（多击杀死）？** — 已解答：ShieldEnemy 实现了1点盾牌HP
+2. **敌人是否需要独立的 GDD 章节？** — 已解答：每种敌人类型内联在此文档 Enemy Variants 章节
+3. **敌人变种的外观如何区分？** — 已解答：Normal=橙色，Shield=冰蓝+盾形，Splitter=深红+裂纹
+4. **SplitterEnemy 分裂出的 Minion 是否有独立场景文件？** — 建议：独立 scene + script，便于单独调整参数
+5. **ShieldEnemy 盾牌破碎后的碎片是否有碰撞？** — 建议：无碰撞，仅视觉动画

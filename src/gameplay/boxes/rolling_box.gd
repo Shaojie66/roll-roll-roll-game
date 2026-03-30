@@ -206,6 +206,18 @@ func _predict_orientation_after_roll(direction: Vector2i) -> Dictionary:
 
 	return predicted
 
+## Applies a 90° clockwise rotation to the box's face orientation.
+## Called by RotatingPlatformTile when the box enters the tile.
+## Clockwise: top → left → bottom → right → top.
+func _apply_rotation() -> void:
+	var old := _orientation.duplicate()
+	_orientation["top"] = old["left"]
+	_orientation["left"] = old["bottom"]
+	_orientation["bottom"] = old["right"]
+	_orientation["right"] = old["top"]
+	## front/back unchanged
+	_refresh_display()
+
 ## Applies a ramp transform to the box's face orientation.
 ## Called by RampTile when the box rolls onto a ramp.
 ## The transform is the same as a roll orientation shift.

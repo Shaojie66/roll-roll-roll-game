@@ -1,5 +1,4 @@
 extends Node
-class_name AudioManager
 ## Central audio routing autoload for the puzzle game.
 ##
 ## Implements all 26 SFX events + 3-stem adaptive music from the audio spec.
@@ -100,10 +99,15 @@ var _stream_enemy_defeat:     Array[AudioStream]   ## 1 variant (280ms total)
 var _stream_goal:             Array[AudioStream]   ## 1 variant
 var _stream_level_complete:   AudioStream          ## 1 variant (fanfare)
 var _stream_button_press:     Array[AudioStream]   ## 1 variant
-var _stream_button_release:   AudioStream          ## 1 variant
+var _stream_button_release:   Array[AudioStream]   ## 1 variant
 var _stream_door_open:        Array[AudioStream]   ## 1 variant
 var _stream_door_close:       Array[AudioStream]   ## 1 variant
 var _stream_energy_socket:     Array[AudioStream]   ## 1 variant
+
+## Terrain SFX streams
+var _stream_ramp:        Array[AudioStream]   ## 1 variant
+var _stream_conveyor:   Array[AudioStream]   ## 1 variant
+var _stream_rotating:   Array[AudioStream]   ## 1 variant
 
 ## Tier-2 UI SFX (deferred load)
 var _stream_pause_open:   AudioStream
@@ -317,6 +321,11 @@ func _preload_streams() -> void:
 
 	## ── Energy socket ────────────────────────────────────────────────────────
 	_stream_energy_socket.append(_load("sfx/sfx_energy_socket_activate_01.ogg"))
+
+	## ── Terrain SFX ─────────────────────────────────────────────────────────
+	_stream_ramp.append(_load("sfx/sfx_terrain_ramp_01.ogg"))
+	_stream_conveyor.append(_load("sfx/sfx_terrain_conveyor_01.ogg"))
+	_stream_rotating.append(_load("sfx/sfx_terrain_rotating_01.ogg"))
 
 	## ── Stem C accent stings (6 files) ─────────────────────────────────────
 	var stem_c_names := ["button", "door", "socket", "goal", "enemy", "complete"]

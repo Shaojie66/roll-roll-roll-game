@@ -75,3 +75,19 @@ const LIGHT_ENEMY_DEFEAT_ENERGY := 0.2
 # ── Feedback colors ────────────────────────────────────────────────────────────
 const DENY_FLASH_ALBEDO    := Color(1.0, 0.35, 0.35, 1.0) ## red body flash on move denied
 const DENY_FLASH_EMISSION  := Color(0.8, 0.1,  0.1,  1.0) ## red emission on move denied
+
+# ── Terrain tile colors ─────────────────────────────────────────────────────────
+## Ramp: warm amber — matches FACE_NORMAL palette
+const RAMP_COLOR           := Color(0.957, 0.702, 0.247, 1.0)   ## #F4B33F amber
+const RAMP_ACTIVE_COLOR    := Color(1.0,   0.85,  0.4,   1.0)   ## brighter amber
+const RAMP_GLOW            := Color(1.0,   0.75,  0.3,   0.4)   ## amber glow
+
+## Conveyor: cool cyan — matches FACE_ENERGY palette
+const CONVEYOR_COLOR       := Color(0.290, 0.780, 0.949, 1.0)   ## #4AC7F2 cyan
+const CONVEYOR_ACTIVE_COLOR := Color(0.55,  0.98,  1.0,   1.0)   ## brighter cyan
+const CONVEYOR_GLOW        := Color(0.35,  0.88,  1.0,   0.4)   ## cyan glow
+
+## Rotating Platform: brick red — matches FACE_HEAVY palette
+const ROTATING_COLOR       := Color(0.886, 0.373, 0.224, 1.0)   ## #E25F39 brick red
+const ROTATING_ACTIVE_COLOR := Color(1.0,   0.55,  0.4,   1.0)   ## brighter red
+const ROTATING_GLOW        := Color(0.9,   0.4,   0.3,   0.4)   ## red glow

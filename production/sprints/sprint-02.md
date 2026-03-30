@@ -55,8 +55,8 @@ the playtest → findings → retune → regression chain above all new features
 
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria | Status |
 |----|------|-------------|-----------|-------------|-------------------|--------|
-| S2-010 | Write Player Movement GDD (reverse-document) | Game Designer | 1.0 | None | `design/gdd/systems/player-movement.md` with 8 required sections | Not Started |
-| S2-011 | Write Level Management GDD (reverse-document) | Game Designer | 1.5 | None | `design/gdd/systems/level-management.md` with 8 required sections | Not Started |
+| S2-010 | Write Player Movement GDD (reverse-document) | Game Designer | 1.0 | None | `design/gdd/systems/player-movement.md` with 8 required sections | **Done** — 169-line GDD with all 8 sections |
+| S2-011 | Write Level Management GDD (reverse-document) | Game Designer | 1.5 | None | `design/gdd/systems/level-management.md` with 8 required sections | **Done** — 261-line GDD with all 8 sections |
 | S2-012 | Add grid_coord automated tests | Lead Programmer | 0.5 | S2-004 | `tests/unit/test_grid_coord.gd` passes with GUT | **Done** — Grid_coord tests were already complete in prior commits |
 
 ### Nice to Have (Cut First)
@@ -64,7 +64,7 @@ the playtest → findings → retune → regression chain above all new features
 | ID | Task | Agent/Owner | Est. Days | Dependencies | Acceptance Criteria | Status |
 |----|------|-------------|-----------|-------------|-------------------|--------|
 | S2-020 | Run second playtest with external tester | User | 1.0 | S2-002 | A second playtest report with fresh-eyes perspective | Not Started |
-| S2-021 | Create Vertical Slice milestone plan | Producer | 1.0 | S2-005 | `production/milestones/milestone-02-vertical-slice.md` exists | Not Started |
+| S2-021 | Create Vertical Slice milestone plan | Producer | 1.0 | S2-005 | `production/milestones/milestone-02-vertical-slice.md` exists | **Done** — 184-line plan with 6 sprints, 25 tasks, gate criteria, and risk register |
 
 ## Carryover from Sprint 1
 

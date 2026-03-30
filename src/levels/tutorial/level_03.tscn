@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://src/levels/shared/level_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/core/grid/grid_motor.gd" id="2"]
@@ -14,8 +14,9 @@
 size = Vector3(20, 0.4, 12)
 
 [sub_resource type="StandardMaterial3D" id="2"]
-albedo_color = Color(0.266667, 0.317647, 0.431373, 1)
-roughness = 1.0
+albedo_color = Color(0.18, 0.22, 0.28, 1)
+roughness = 0.85
+metallic = 0.1
 
 [sub_resource type="ShaderMaterial" id="FloorShader"]
 shader = ExtResource("99")
@@ -25,8 +26,7 @@ shader_parameter/light_tile = Color(0.295, 0.345, 0.42, 1.0)
 shader_parameter/grid_line = Color(0.14, 0.18, 0.24, 1.0)
 shader_parameter/grid_line_width = 0.04
 
-; Floor warning decal — Art Director approved: dark slate disc at enemy cell (3,3) → world (6, 0, 6)
-; Two concentric ring decorations give the "danger zone / patrol boundary" read.
+; Warning decal at enemy cell (5,2)=world(10,0,4)
 [sub_resource type="CylinderMesh" id="3"]
 top_radius = 0.45
 bottom_radius = 0.45
@@ -44,8 +44,7 @@ outer_radius = 0.32
 albedo_color = Color(0.180392, 0.223529, 0.301961, 0.80)
 roughness = 0.85
 
-; Training wall — Art Director approved: distinct gold-accented material signals a
-; tutorial constraint vs. a regular environmental wall.
+; Internal wall: blocks corridor shortcut at (3,1)=world(6,0,2)
 [sub_resource type="BoxMesh" id="7"]
 size = Vector3(1.8, 3.0, 1.8)
 
@@ -57,16 +56,12 @@ emission_enabled = true
 emission = Color(0.52, 0.42, 0.12, 1)
 emission_energy_multiplier = 0.22
 
-[sub_resource type="BoxMesh" id="9"]
-size = Vector3(1.8, 3.0, 1.8)
-
-[sub_resource type="StandardMaterial3D" id="10"]
-albedo_color = Color(0.25, 0.28, 0.35, 1)
-roughness = 0.7
-metallic = 0.35
-emission_enabled = true
-emission = Color(0.3, 0.5, 0.7, 1)
-emission_energy_multiplier = 0.15
+; L3: Enemy — wrong-first-push teaching
+; Player at (1,2), Box at (4,2), Enemy at (5,2), Goal at (7,2)
+; Player walks right into enemy (5,2): denied. Learns they need the box.
+; Correct solution: push box LEFT twice to defeat enemy (requires HEAVY face).
+; After defeating enemy, player repositions and pushes box RIGHT twice to goal.
+; Total: 4 pushes + repositioning. First push is a deny, not a success.
 
 [node name="Level03" type="Node3D"]
 script = ExtResource("1")
@@ -84,114 +79,84 @@ position = Vector3(9, -0.2, 5)
 mesh = SubResource("1")
 surface_material_override/0 = SubResource("FloorShader")
 
-; Player — grid (1, 2) → world (2, 0.75, 4)
+; Player at (1,2)=world(2,0,4)
 [node name="Player" parent="." instance=ExtResource("3")]
 position = Vector3(2, 0.75, 4)
 
-; Box — grid (3, 4) → world (6, 0.5, 8)
-; Initial top face = NORMAL_A.
-; After push RIGHT → top = IMPACT_A (defeats normal enemy).
-; After push UP   → top = HEAVY   (defeats normal enemy).
-; After push DOWN → top = ENERGY  (DENIED — teaches player to read the face).
+; Box at (4,2)=world(8,0,4). Initial top=NORMAL_A.
 [node name="RollingBox" parent="." instance=ExtResource("4")]
-position = Vector3(6, 0.5, 8)
+position = Vector3(8, 0.5, 4)
 
-; NormalEnemy — grid (3, 3) → world (6, 0.45, 6)
-; accepted_face_kinds = ["IMPACT", "HEAVY"] (set in normal_enemy.gd)
-; Defeated by IMPACT_A/B (push RIGHT/LEFT) or HEAVY (push UP).
+; Enemy at (5,2)=world(10,0,4). Player's first move walks into this cell — denied.
 [node name="NormalEnemy" parent="." instance=ExtResource("5")]
-position = Vector3(6, 0.45, 6)
+position = Vector3(10, 0.45, 4)
 
-; GoalPad — grid (5, 4) → world (10, 0, 8)
+; Goal at (7,2)=world(14,0,4)
 [node name="GoalPad" parent="." instance=ExtResource("7")]
-position = Vector3(10, 0, 8)
+position = Vector3(14, 0, 4)
 
-; Training wall — Art Director approved: gold emission signals a tutorial constraint.
-; Blocks corridor shortcut at (2,2) so the player must use the box puzzle.
-[node name="WallInternal" type="MeshInstance3D" parent="."]
-position = Vector3(4, 1, 4)
-mesh = SubResource("7")
-surface_material_override/0 = SubResource("8")
-
-; Floor warning decal at enemy cell — purely decorative (collision_layer = 0).
-; Communicates "patrol zone / do not approach" without naming the mechanic.
+; Floor warning disc at enemy cell
 [node name="FloorWarningDisc" type="MeshInstance3D" parent="."]
-position = Vector3(6, -0.15, 6)
+position = Vector3(10, -0.15, 4)
 mesh = SubResource("3")
 surface_material_override/0 = SubResource("4")
 
 [node name="FloorWarningRing" type="MeshInstance3D" parent="."]
-position = Vector3(6, -0.145, 6)
+position = Vector3(10, -0.145, 4)
 mesh = SubResource("5")
 surface_material_override/0 = SubResource("6")
 
-; Border walls — 10-column × 6-row grid (x: 0–9, y: 0–5)
+; Internal wall blocks corridor shortcut along row 1 at x=3
+[node name="WallInternal" type="MeshInstance3D" parent="."]
+position = Vector3(6, 1, 2)
+mesh = SubResource("7")
+surface_material_override/0 = SubResource("8")
+
+; Border walls: 10-col x 6-row (x: 0-9, y: 0-5)
 ; Left column
 [node name="W_L0" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 0)
-
 [node name="W_L2" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 4)
-
 [node name="W_L4" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 8)
-
 [node name="W_L6" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 12)
-
 ; Right column
 [node name="W_R0" parent="." instance=ExtResource("8")]
 position = Vector3(18, 1, 0)
-
 [node name="W_R2" parent="." instance=ExtResource("8")]
 position = Vector3(18, 1, 4)
-
 [node name="W_R4" parent="." instance=ExtResource("8")]
 position = Vector3(18, 1, 8)
-
 [node name="W_R6" parent="." instance=ExtResource("8")]
 position = Vector3(18, 1, 12)
-
-; Top border (z=0, x: 0,2,4,6,8,10,12,14,16,18) — row y=0
+; Top border (z=0)
 [node name="W_T2" parent="." instance=ExtResource("8")]
 position = Vector3(4, 1, 0)
-
 [node name="W_T4" parent="." instance=ExtResource("8")]
 position = Vector3(8, 1, 0)
-
 [node name="W_T6" parent="." instance=ExtResource("8")]
 position = Vector3(12, 1, 0)
-
 [node name="W_T8" parent="." instance=ExtResource("8")]
 position = Vector3(16, 1, 0)
-
-; Bottom border (z=12) — row y=5
+; Bottom border (z=12)
 [node name="W_B0" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 12)
-
 [node name="W_B2" parent="." instance=ExtResource("8")]
 position = Vector3(4, 1, 12)
-
 [node name="W_B4" parent="." instance=ExtResource("8")]
 position = Vector3(8, 1, 12)
-
 [node name="W_B6" parent="." instance=ExtResource("8")]
 position = Vector3(12, 1, 12)
-
 [node name="W_B8" parent="." instance=ExtResource("8")]
 position = Vector3(16, 1, 12)
 
-[node name="W_B10" parent="." instance=ExtResource("8")]
-position = Vector3(18, 1, 12)
-
-; Camera
 [node name="Camera3D" type="Camera3D" parent="."]
 position = Vector3(9, 18, 19)
 rotation = Vector3(-1.05, 0, 0)
 fov = 52.0
 
-; Lighting — Art Director approved: slightly warmer key light (1.55 energy)
-; signals stakes increase vs. Levels 1–2.
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 light_color = Color(1.0, 0.96, 0.88, 1)
 shadow_enabled = true

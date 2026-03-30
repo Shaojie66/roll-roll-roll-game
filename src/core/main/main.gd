@@ -11,7 +11,7 @@ const LEVEL_PRESENTATION := [
 	{
 		"kicker": "教程 01 / 05",
 		"title": "滚动入门",
-		"subtitle": "先看懂箱子会翻滚，再记它的用途。",
+		"subtitle": "推动箱子，看它滚动后顶面会变化。",
 		"star3_max": 6,
 		"star2_max": 10,
 	},
@@ -31,15 +31,15 @@ const LEVEL_PRESENTATION := [
 	},
 	{
 		"kicker": "教程 04 / 05",
-		"title": "能源供给",
-		"subtitle": "能源面是工具，不是终点，把它送到正确终端。",
+		"title": "门与按钮",
+		"subtitle": "用箱子压住按钮开门，然后穿过门走到终点。",
 		"star3_max": 12,
 		"star2_max": 18,
 	},
 	{
 		"kicker": "教程 05 / 05",
 		"title": "一箱三用",
-		"subtitle": "开门、清敌、供能，要把同一个箱子重复利用。",
+		"subtitle": "一个箱子，三份工作：先开门，再打掉机器人，最后把能源面送到发光的终端上。",
 		"star3_max": 16,
 		"star2_max": 24,
 	},

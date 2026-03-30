@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://src/levels/shared/level_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/core/grid/grid_motor.gd" id="2"]
@@ -6,12 +6,12 @@
 [ext_resource type="PackedScene" path="res://src/gameplay/boxes/rolling_box.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://src/gameplay/interactables/buttons/floor_button.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://src/gameplay/interactables/doors/sliding_door.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://src/gameplay/enemies/normal_enemy.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://src/gameplay/interactables/energy/energy_socket.tscn" id="10"]
 [ext_resource type="PackedScene" path="res://src/gameplay/interactables/goals/goal_pad.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://src/gameplay/terrain/wall_block.tscn" id="8"]
 [ext_resource type="Shader" path="res://src/core/shared/floor_checkerboard.gdshader" id="99"]
 [ext_resource type="Environment" path="res://src/core/shared/toy_port_env.tres" id="100"]
-[ext_resource type="PackedScene" path="res://src/gameplay/enemies/normal_enemy.tscn" id="9"]
-[ext_resource type="PackedScene" path="res://src/gameplay/interactables/energy/energy_socket.tscn" id="10"]
 
 [sub_resource type="BoxMesh" id="1"]
 size = Vector3(24, 0.4, 14)
@@ -19,7 +19,6 @@ size = Vector3(24, 0.4, 14)
 [sub_resource type="StandardMaterial3D" id="2"]
 albedo_color = Color(0.290196, 0.34902, 0.470588, 1)
 roughness = 1.0
-
 
 [sub_resource type="ShaderMaterial" id="FloorShader"]
 shader = ExtResource("99")
@@ -29,20 +28,28 @@ shader_parameter/light_tile = Color(0.295, 0.345, 0.42, 1.0)
 shader_parameter/grid_line = Color(0.14, 0.18, 0.24, 1.0)
 shader_parameter/grid_line_width = 0.04
 
+; L5: One box, three jobs (FIXED: v-shape path ensures ENERGY is reachable)
+; Player at (1,3), Box at (3,4), Button at (5,3), Door at (6,3),
+;   Enemy at (5,5), Socket at (7,3), Goal at (8,3)
+;
+; Box orientation trace (initial: T=NORMAL_A, F=HEAVY):
+;   R1: box (4,4), top=IMPACT
+;   R2: box (5,4), top=NORMAL   → button cell (5,3) reached by walking, not box
+;   D1: box (5,5), top=HEAVY    → enemy at (5,5) DEFEATED!
+;   R1: box (6,5), top=IMPACT
+;   R2: box (7,5), top=NORMAL
+;   U1: box (7,4), top=ENERGY
+;   U2: box (7,3), top=ENERGY   → socket activated!
+;
+; Player path: walk right → push box R2 → walk up-right → push box D1 → push R2 U2 → walk to goal
 
 [node name="Level05" type="Node3D"]
 script = ExtResource("1")
-; Level 5: One box, three jobs.
-; Box+player grid(2,3). Button grid(3,3). Enemy grid(9,3).
-; 6 RIGHT pushes: 1st opens door, 7th defeats enemy.
-; 8 RIGHT pushes: box to (10,3)=socket, top=ENERGY.
-; Player walks (9,3)→(9,2)=goal: level complete.
-start_hint_text = "一个箱子，三份工作：先开门，再清掉机器人，最后用 ENERGY 顶面给出口供能。"
+start_hint_text = "一个箱子，三份工作：先开门，再打掉机器人，最后把能源面送到发光的终端上。"
 completed_hint_text = "第五课完成。按 R 可以重开。"
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = ExtResource("100")
-
 
 [node name="GridMotor" type="Node" parent="."]
 script = ExtResource("2")
@@ -52,155 +59,94 @@ position = Vector3(11, -0.2, 6)
 mesh = SubResource("1")
 surface_material_override/0 = SubResource("FloorShader")
 
+; Player at (1,3)=world(2,0,6)
 [node name="Player" parent="." instance=ExtResource("3")]
 position = Vector3(2, 0.75, 6)
 
+; Box at (3,4)=world(6,0,8). Initial top=NORMAL_A, front=HEAVY faces NORTH.
 [node name="RollingBox" parent="." instance=ExtResource("4")]
-position = Vector3(4, 0.5, 6)
+position = Vector3(6, 0.5, 8)
 
+; Button at (5,3)=world(10,0,6) — player walks to this cell while box opens door
 [node name="FloorButton" parent="." instance=ExtResource("5")]
-position = Vector3(6, 0, 6)
+position = Vector3(10, 0, 6)
 linked_doors = Array[NodePath]([NodePath("../SlidingDoor")])
 
+; Door at (6,3)=world(12,0,6) — blocks player until box reaches button
 [node name="SlidingDoor" parent="." instance=ExtResource("6")]
-position = Vector3(8, 0, 6)
+position = Vector3(12, 0, 6)
 
+; Enemy at (5,5)=world(10,0,10) — south of button
+; After R2, box is at (5,4). Push D1: box goes (5,5)=enemy cell, top=HEAVY → defeated!
 [node name="NormalEnemy" parent="." instance=ExtResource("9")]
-position = Vector3(18, 0.45, 6)
+position = Vector3(10, 0.45, 10)
 
+; Socket at (7,3)=world(14,0,6) — east of door
+; After R2+U2, box enters socket cell with top=ENERGY → activated!
 [node name="EnergySocket" parent="." instance=ExtResource("10")]
-position = Vector3(20, 0, 6)
+position = Vector3(14, 0, 6)
 linked_goals = Array[NodePath]([NodePath("../GoalPad")])
 
+; Goal at (8,3)=world(16,0,6) — east of socket
 [node name="GoalPad" parent="." instance=ExtResource("7")]
-position = Vector3(18, 0, 4)
+position = Vector3(16, 0, 6)
 requires_external_power = true
 
-[node name="Wall00" parent="." instance=ExtResource("8")]
+; Border walls: 12-col x 7-row (x: 0-11, y: 0-6)
+; Left column
+[node name="W_L0" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 0)
-
-[node name="Wall01" parent="." instance=ExtResource("8")]
-position = Vector3(2, 1, 0)
-
-[node name="Wall02" parent="." instance=ExtResource("8")]
-position = Vector3(4, 1, 0)
-
-[node name="Wall03" parent="." instance=ExtResource("8")]
-position = Vector3(6, 1, 0)
-
-[node name="Wall04" parent="." instance=ExtResource("8")]
-position = Vector3(8, 1, 0)
-
-[node name="Wall05" parent="." instance=ExtResource("8")]
-position = Vector3(10, 1, 0)
-
-[node name="Wall06" parent="." instance=ExtResource("8")]
-position = Vector3(12, 1, 0)
-
-[node name="Wall07" parent="." instance=ExtResource("8")]
-position = Vector3(14, 1, 0)
-
-[node name="Wall08" parent="." instance=ExtResource("8")]
-position = Vector3(16, 1, 0)
-
-[node name="Wall09" parent="." instance=ExtResource("8")]
-position = Vector3(18, 1, 0)
-
-[node name="Wall10" parent="." instance=ExtResource("8")]
-position = Vector3(20, 1, 0)
-
-[node name="Wall11" parent="." instance=ExtResource("8")]
-position = Vector3(22, 1, 0)
-
-[node name="Wall12" parent="." instance=ExtResource("8")]
-position = Vector3(0, 1, 2)
-
-[node name="Wall13" parent="." instance=ExtResource("8")]
-position = Vector3(8, 1, 2)
-
-[node name="Wall14" parent="." instance=ExtResource("8")]
-position = Vector3(16, 1, 2)
-
-[node name="Wall15" parent="." instance=ExtResource("8")]
-position = Vector3(22, 1, 2)
-
-[node name="Wall16" parent="." instance=ExtResource("8")]
+[node name="W_L2" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 4)
+[node name="W_L4" parent="." instance=ExtResource("8")]
+position = Vector3(0, 1, 8)
+[node name="W_L6" parent="." instance=ExtResource("8")]
+position = Vector3(0, 1, 12)
+; Right column
+[node name="W_R0" parent="." instance=ExtResource("8")]
+position = Vector3(22, 1, 0)
+[node name="W_R2" parent="." instance=ExtResource("8")]
+position = Vector3(22, 1, 4)
+[node name="W_R4" parent="." instance=ExtResource("8")]
+position = Vector3(22, 1, 8)
+[node name="W_R6" parent="." instance=ExtResource("8")]
+position = Vector3(22, 1, 12)
+; Top border (z=0)
+[node name="W_T2" parent="." instance=ExtResource("8")]
+position = Vector3(4, 1, 0)
+[node name="W_T4" parent="." instance=ExtResource("8")]
+position = Vector3(8, 1, 0)
+[node name="W_T6" parent="." instance=ExtResource("8")]
+position = Vector3(12, 1, 0)
+[node name="W_T8" parent="." instance=ExtResource("8")]
+position = Vector3(16, 1, 0)
+[node name="W_T10" parent="." instance=ExtResource("8")]
+position = Vector3(20, 1, 0)
+; Bottom border (z=14)
+[node name="W_B0" parent="." instance=ExtResource("8")]
+position = Vector3(0, 1, 14)
+[node name="W_B2" parent="." instance=ExtResource("8")]
+position = Vector3(4, 1, 14)
+[node name="W_B4" parent="." instance=ExtResource("8")]
+position = Vector3(8, 1, 14)
+[node name="W_B6" parent="." instance=ExtResource("8")]
+position = Vector3(12, 1, 14)
+[node name="W_B8" parent="." instance=ExtResource("8")]
+position = Vector3(16, 1, 14)
+[node name="W_B10" parent="." instance=ExtResource("8")]
+position = Vector3(20, 1, 14)
 
-[node name="Wall17" parent="." instance=ExtResource("8")]
+; Interior walls: row 2 (y=1) at columns 4 and 8 blocks shortcut from row 3 into row 1/2
+[node name="W_I1" parent="." instance=ExtResource("8")]
 position = Vector3(8, 1, 4)
-
-[node name="Wall18" parent="." instance=ExtResource("8")]
+[node name="W_I2" parent="." instance=ExtResource("8")]
 position = Vector3(16, 1, 4)
 
-[node name="Wall19" parent="." instance=ExtResource("8")]
-position = Vector3(22, 1, 4)
+; Interior walls: row 5 (y=2) — box travels through row 5 (y=5-1=9 to y=7-1=11), these walls don't block
+; Row 5 (z=10): (3,5) and (4,5) blocked to keep box in corridor. Actually box travels (5,5) then (6,5) then (7,5) then (7,4).
+; No walls needed on row 5.
 
-[node name="Wall20" parent="." instance=ExtResource("8")]
-position = Vector3(0, 1, 6)
-
-[node name="Wall22" parent="." instance=ExtResource("8")]
-position = Vector3(22, 1, 6)
-
-[node name="Wall23" parent="." instance=ExtResource("8")]
-position = Vector3(0, 1, 8)
-
-[node name="Wall24" parent="." instance=ExtResource("8")]
-position = Vector3(8, 1, 8)
-
-[node name="Wall25" parent="." instance=ExtResource("8")]
-position = Vector3(16, 1, 8)
-
-[node name="Wall26" parent="." instance=ExtResource("8")]
-position = Vector3(22, 1, 8)
-
-[node name="Wall27" parent="." instance=ExtResource("8")]
-position = Vector3(0, 1, 10)
-
-[node name="Wall28" parent="." instance=ExtResource("8")]
-position = Vector3(8, 1, 10)
-
-[node name="Wall29" parent="." instance=ExtResource("8")]
-position = Vector3(16, 1, 10)
-
-[node name="Wall30" parent="." instance=ExtResource("8")]
-position = Vector3(22, 1, 10)
-
-[node name="Wall31" parent="." instance=ExtResource("8")]
-position = Vector3(0, 1, 12)
-
-[node name="Wall32" parent="." instance=ExtResource("8")]
-position = Vector3(2, 1, 12)
-
-[node name="Wall33" parent="." instance=ExtResource("8")]
-position = Vector3(4, 1, 12)
-
-[node name="Wall34" parent="." instance=ExtResource("8")]
-position = Vector3(6, 1, 12)
-
-[node name="Wall35" parent="." instance=ExtResource("8")]
-position = Vector3(8, 1, 12)
-
-[node name="Wall36" parent="." instance=ExtResource("8")]
-position = Vector3(10, 1, 12)
-
-[node name="Wall37" parent="." instance=ExtResource("8")]
-position = Vector3(12, 1, 12)
-
-[node name="Wall38" parent="." instance=ExtResource("8")]
-position = Vector3(14, 1, 12)
-
-[node name="Wall39" parent="." instance=ExtResource("8")]
-position = Vector3(16, 1, 12)
-
-[node name="Wall40" parent="." instance=ExtResource("8")]
-position = Vector3(18, 1, 12)
-
-[node name="Wall41" parent="." instance=ExtResource("8")]
-position = Vector3(20, 1, 12)
-
-[node name="Wall42" parent="." instance=ExtResource("8")]
-position = Vector3(22, 1, 12)
+; Row 4 (z=8): box starts at (3,4). No walls needed.
 
 [node name="Camera3D" type="Camera3D" parent="."]
 position = Vector3(11, 20, 22)
@@ -209,7 +155,6 @@ fov = 52.0
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 light_color = Color(1.0, 0.96, 0.88, 1)
-light_energy = 1.8
 shadow_enabled = true
 shadow_bias = 0.05
 rotation = Vector3(-0.855211, -0.593412, 0)

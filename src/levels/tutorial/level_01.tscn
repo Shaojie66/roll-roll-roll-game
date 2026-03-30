@@ -1,24 +1,21 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://src/levels/shared/level_root.gd" id="1"]
 [ext_resource type="Script" path="res://src/core/grid/grid_motor.gd" id="2"]
 [ext_resource type="PackedScene" path="res://src/gameplay/player/player.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://src/gameplay/boxes/rolling_box.tscn" id="4"]
-[ext_resource type="PackedScene" path="res://src/gameplay/interactables/buttons/floor_button.tscn" id="5"]
-[ext_resource type="PackedScene" path="res://src/gameplay/interactables/doors/sliding_door.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://src/gameplay/interactables/goals/goal_pad.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://src/gameplay/terrain/wall_block.tscn" id="8"]
 [ext_resource type="Shader" path="res://src/core/shared/floor_checkerboard.gdshader" id="99"]
 [ext_resource type="Environment" path="res://src/core/shared/toy_port_env.tres" id="100"]
 
 [sub_resource type="BoxMesh" id="1"]
-size = Vector3(18, 0.4, 12)
+size = Vector3(12, 0.4, 8)
 
 [sub_resource type="StandardMaterial3D" id="2"]
 albedo_color = Color(0.18, 0.22, 0.28, 1)
 roughness = 0.85
 metallic = 0.1
-
 
 [sub_resource type="ShaderMaterial" id="FloorShader"]
 shader = ExtResource("99")
@@ -28,123 +25,68 @@ shader_parameter/light_tile = Color(0.295, 0.345, 0.42, 1.0)
 shader_parameter/grid_line = Color(0.14, 0.18, 0.24, 1.0)
 shader_parameter/grid_line_width = 0.04
 
+; L1: Rolling Awareness (pure — no interactables)
+; Player at (2,2), Box at (3,2), Goal at (4,0)
+; Solution: push box RIGHT once to (4,2), player walks up-left-around to goal
+; Box at (4,2) does NOT block the player's path to (4,0)
 
 [node name="Level01" type="Node3D"]
 script = ExtResource("1")
-start_hint_text = "先推动箱子，看它滚动后顶面会变化。把它压在圆形按钮上，让门保持开启，再走到发光终点。"
+start_hint_text = "推动箱子，看它滚动后顶面会变化。"
 completed_hint_text = "第一课完成。按 R 可以重开。"
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = ExtResource("100")
 
-
 [node name="GridMotor" type="Node" parent="."]
 script = ExtResource("2")
 
 [node name="Floor" type="MeshInstance3D" parent="."]
-position = Vector3(7, -0.2, 4)
+position = Vector3(5, -0.2, 3)
 mesh = SubResource("1")
 surface_material_override/0 = SubResource("FloorShader")
 
 [node name="Player" parent="." instance=ExtResource("3")]
-position = Vector3(2, 0.75, 2)
+position = Vector3(4, 0.75, 4)
 
 [node name="RollingBox" parent="." instance=ExtResource("4")]
-position = Vector3(6, 0.5, 2)
-
-[node name="FloorButton" parent="." instance=ExtResource("5")]
-position = Vector3(12, 0, 2)
-linked_doors = Array[NodePath]([NodePath("../SlidingDoor")])
-
-[node name="SlidingDoor" parent="." instance=ExtResource("6")]
-position = Vector3(8, 0, 4)
+position = Vector3(6, 0.5, 4)
 
 [node name="GoalPad" parent="." instance=ExtResource("7")]
-position = Vector3(12, 0, 6)
+position = Vector3(8, 0, 0)
 
-[node name="Wall00" parent="." instance=ExtResource("8")]
+; Border walls: 7-col x 5-row grid (x: 0-6, y: 0-4)
+; Left column
+[node name="W_L0" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 0)
-
-[node name="Wall01" parent="." instance=ExtResource("8")]
-position = Vector3(2, 1, 0)
-
-[node name="Wall02" parent="." instance=ExtResource("8")]
-position = Vector3(4, 1, 0)
-
-[node name="Wall03" parent="." instance=ExtResource("8")]
-position = Vector3(6, 1, 0)
-
-[node name="Wall04" parent="." instance=ExtResource("8")]
-position = Vector3(8, 1, 0)
-
-[node name="Wall05" parent="." instance=ExtResource("8")]
-position = Vector3(10, 1, 0)
-
-[node name="Wall06" parent="." instance=ExtResource("8")]
-position = Vector3(12, 1, 0)
-
-[node name="Wall07" parent="." instance=ExtResource("8")]
-position = Vector3(14, 1, 0)
-
-[node name="Wall08" parent="." instance=ExtResource("8")]
-position = Vector3(0, 1, 2)
-
-[node name="Wall09" parent="." instance=ExtResource("8")]
-position = Vector3(14, 1, 2)
-
-[node name="Wall10" parent="." instance=ExtResource("8")]
+[node name="W_L2" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 4)
-
-[node name="Wall11" parent="." instance=ExtResource("8")]
-position = Vector3(2, 1, 4)
-
-[node name="Wall12" parent="." instance=ExtResource("8")]
-position = Vector3(4, 1, 4)
-
-[node name="Wall13" parent="." instance=ExtResource("8")]
-position = Vector3(6, 1, 4)
-
-[node name="Wall14" parent="." instance=ExtResource("8")]
-position = Vector3(10, 1, 4)
-
-[node name="Wall15" parent="." instance=ExtResource("8")]
-position = Vector3(12, 1, 4)
-
-[node name="Wall16" parent="." instance=ExtResource("8")]
-position = Vector3(14, 1, 4)
-
-[node name="Wall17" parent="." instance=ExtResource("8")]
-position = Vector3(0, 1, 6)
-
-[node name="Wall18" parent="." instance=ExtResource("8")]
-position = Vector3(14, 1, 6)
-
-[node name="Wall19" parent="." instance=ExtResource("8")]
+[node name="W_L4" parent="." instance=ExtResource("8")]
 position = Vector3(0, 1, 8)
-
-[node name="Wall20" parent="." instance=ExtResource("8")]
-position = Vector3(2, 1, 8)
-
-[node name="Wall21" parent="." instance=ExtResource("8")]
+; Right column
+[node name="W_R0" parent="." instance=ExtResource("8")]
+position = Vector3(12, 1, 0)
+[node name="W_R2" parent="." instance=ExtResource("8")]
+position = Vector3(12, 1, 4)
+[node name="W_R4" parent="." instance=ExtResource("8")]
+position = Vector3(12, 1, 8)
+; Top border
+[node name="W_T2" parent="." instance=ExtResource("8")]
+position = Vector3(4, 1, 0)
+[node name="W_T4" parent="." instance=ExtResource("8")]
+position = Vector3(8, 1, 0)
+; Bottom border
+[node name="W_B0" parent="." instance=ExtResource("8")]
+position = Vector3(0, 1, 8)
+[node name="W_B2" parent="." instance=ExtResource("8")]
 position = Vector3(4, 1, 8)
-
-[node name="Wall22" parent="." instance=ExtResource("8")]
-position = Vector3(6, 1, 8)
-
-[node name="Wall23" parent="." instance=ExtResource("8")]
+[node name="W_B4" parent="." instance=ExtResource("8")]
 position = Vector3(8, 1, 8)
-
-[node name="Wall24" parent="." instance=ExtResource("8")]
-position = Vector3(10, 1, 8)
-
-[node name="Wall25" parent="." instance=ExtResource("8")]
+[node name="W_B6" parent="." instance=ExtResource("8")]
 position = Vector3(12, 1, 8)
 
-[node name="Wall26" parent="." instance=ExtResource("8")]
-position = Vector3(14, 1, 8)
-
 [node name="Camera3D" type="Camera3D" parent="."]
-position = Vector3(7, 18, 16)
+position = Vector3(5, 14, 14)
 rotation = Vector3(-1.05, 0, 0)
 fov = 52.0
 

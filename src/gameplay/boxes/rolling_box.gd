@@ -13,30 +13,11 @@ enum FaceId {
 	ENERGY,
 }
 
-const ROLL_DURATION := 0.22
+@export var roll_duration := 0.22
 const BOX_HEIGHT := 0.5
-const FACE_VISUALS := {
-	"NORMAL": {
-		"label_color": Color(1.0, 0.96, 0.84, 1.0),
-		"body_color": Color(0.956863, 0.701961, 0.247059, 1.0),
-		"label_text": "● 普通",
-	},
-	"IMPACT": {
-		"label_color": Color(1.0, 0.86, 0.78, 1.0),
-		"body_color": Color(0.968627, 0.486275, 0.345098, 1.0),
-		"label_text": "◆ 冲击",
-	},
-	"HEAVY": {
-		"label_color": Color(1.0, 0.96, 0.82, 1.0),
-		"body_color": Color(0.886275, 0.372549, 0.223529, 1.0),
-		"label_text": "■ 重压",
-	},
-	"ENERGY": {
-		"label_color": Color(0.88, 0.988, 1.0, 1.0),
-		"body_color": Color(0.290196, 0.780392, 0.94902, 1.0),
-		"label_text": "★ 能源",
-	},
-}
+## Face visual data — populated from DesignTokens in _ready().
+## Declared as var (not const) so Color references resolve at runtime.
+var FACE_VISUALS: Dictionary = {}
 
 var grid_position: Vector2i = Vector2i.ZERO
 var is_busy := false
@@ -65,6 +46,28 @@ var _orientation := {
 var _body_material: StandardMaterial3D
 
 func _ready() -> void:
+	FACE_VISUALS = {
+		"NORMAL": {
+			"label_color": DesignTokens.FACE_NORMAL_LABEL,
+			"body_color":  DesignTokens.FACE_NORMAL_BODY,
+			"label_text":  "● 普通",
+		},
+		"IMPACT": {
+			"label_color": DesignTokens.FACE_IMPACT_LABEL,
+			"body_color":  DesignTokens.FACE_IMPACT_BODY,
+			"label_text":  "◆ 冲击",
+		},
+		"HEAVY": {
+			"label_color": DesignTokens.FACE_HEAVY_LABEL,
+			"body_color":  DesignTokens.FACE_HEAVY_BODY,
+			"label_text":  "■ 重压",
+		},
+		"ENERGY": {
+			"label_color": DesignTokens.FACE_ENERGY_LABEL,
+			"body_color":  DesignTokens.FACE_ENERGY_BODY,
+			"label_text":  "★ 能源",
+		},
+	}
 	add_to_group("grid_entity")
 	add_to_group("rolling_box")
 
@@ -98,13 +101,13 @@ func move_to_cell(target: Vector2i, direction: Vector2i) -> void:
 		self,
 		"global_position",
 		GridCoordRef.grid_to_world(grid_position, BOX_HEIGHT),
-		ROLL_DURATION
+		roll_duration
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(
 		visual,
 		"rotation",
 		visual.rotation + rotation_delta,
-		ROLL_DURATION
+		roll_duration
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.finished.connect(_on_roll_finished)
 
@@ -121,6 +124,20 @@ func _on_roll_finished() -> void:
 	roll_finished.emit()
 	if _grid_motor != null and _grid_motor.has_method("notify_entity_move_finished"):
 		_grid_motor.notify_entity_move_finished(self, _previous_grid_position, grid_position)
+	## Play box-roll SFX. Map the box's top-face FaceId to AudioManager.FaceType.
+	AudioManager.play_box_roll(_face_id_to_audio_type(_orientation["top"]))
+
+
+## Maps RollingBox.FaceId to AudioManager.FaceType for SFX pitch/volume routing.
+func _face_id_to_audio_type(face_id: int) -> AudioManager.FaceType:
+	match face_id:
+		FaceId.NORMAL_A: return AudioManager.FaceType.NORMAL_A
+		FaceId.NORMAL_B: return AudioManager.FaceType.NORMAL_B
+		FaceId.IMPACT_A:  return AudioManager.FaceType.IMPACT_A
+		FaceId.IMPACT_B:  return AudioManager.FaceType.IMPACT_B
+		FaceId.HEAVY:     return AudioManager.FaceType.HEAVY
+		FaceId.ENERGY:    return AudioManager.FaceType.ENERGY
+		_: return AudioManager.FaceType.NORMAL_A
 
 func _refresh_display() -> void:
 	var face_kind := current_face_kind()

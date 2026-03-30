@@ -4,7 +4,7 @@ class_name Player
 
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
-const MOVE_DURATION := 0.14
+@export var move_duration := 0.14
 const PLAYER_HEIGHT := 0.75
 
 var grid_position: Vector2i = Vector2i.ZERO
@@ -70,7 +70,7 @@ func move_to_cell(target: Vector2i, direction: Vector2i) -> void:
 		self,
 		"global_position",
 		GridCoordRef.grid_to_world(grid_position, PLAYER_HEIGHT),
-		MOVE_DURATION
+		move_duration
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.finished.connect(_on_move_finished)
 
@@ -78,6 +78,7 @@ func _on_move_finished() -> void:
 	is_busy = false
 	if _grid_motor != null and _grid_motor.has_method("notify_entity_move_finished"):
 		_grid_motor.notify_entity_move_finished(self, _previous_grid_position, grid_position)
+	AudioManager.play_player_step()
 
 func _on_move_denied(actor: Node, reason: String) -> void:
 	if actor != self:
@@ -92,8 +93,8 @@ func _show_deny_feedback(reason: String) -> void:
 	if _body_mat == null:
 		return
 	_deny_tween = create_tween()
-	_body_mat.albedo_color = Color(1.0, 0.35, 0.35)
-	_body_mat.emission = Color(0.8, 0.1, 0.1)
+	_body_mat.albedo_color = DesignTokens.DENY_FLASH_ALBEDO
+	_body_mat.emission = DesignTokens.DENY_FLASH_EMISSION
 	_body_mat.emission_energy_multiplier = 1.2
 	_deny_tween.tween_method(
 		_restore_body_material.bind(_original_body_albedo, _original_body_emission),

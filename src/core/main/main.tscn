@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://src/core/main/main.gd" id="1"]
 
@@ -119,6 +119,31 @@ bg_color = Color(0.349, 0.863, 1.0, 0.3)
 [sub_resource type="StyleBoxFlat" id="SepGold"]
 bg_color = Color(1.0, 0.816, 0.376, 0.3)
 
+; ── Focus ring styles (WCAG 2.1 AA — 2.4.7 Focus Visible) ───────────────────
+[sub_resource type="StyleBoxFlat" id="FocusCyan"]
+draw_center = false
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.352941, 0.862745, 1.0, 1.0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="FocusGold"]
+draw_center = false
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1.0, 0.816, 0.376, 1.0)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [node name="Main" type="Node"]
 script = ExtResource("1")
 
@@ -155,6 +180,7 @@ size_flags_vertical = 2
 theme_override_styles/panel = SubResource("InsetLevel")
 
 [node name="LevelCard" type="PanelContainer" parent="UI/SafeArea/Layout/TopRow"]
+unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(360, 0)
 size_flags_horizontal = 3
@@ -170,16 +196,19 @@ theme_override_constants/margin_bottom = 18
 theme_override_constants/separation = 4
 
 [node name="LevelKickerLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(0.603922, 0.890196, 1, 1)
 theme_override_font_sizes/font_size = 15
 text = "教程 01 / 05"
 
 [node name="LevelTitleLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(0.988235, 0.980392, 0.94902, 1)
 theme_override_font_sizes/font_size = 28
 text = "滚动入门"
 
 [node name="LevelSubtitleLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack"]
+unique_name_in_owner = true
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.796078, 0.847059, 0.905882, 1)
 theme_override_font_sizes/font_size = 15
@@ -216,6 +245,7 @@ theme_override_font_sizes/font_size = 15
 text = "控制"
 
 [node name="ControlsLabel" type="Label" parent="UI/SafeArea/Layout/TopRow/ControlsCard/ControlsPadding/ControlsStack"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(0.960784, 0.972549, 0.992157, 1)
 theme_override_font_sizes/font_size = 18
 text = "移动  W A S D / 方向键\n重开  R"
@@ -236,6 +266,7 @@ size_flags_vertical = 2
 theme_override_styles/panel = SubResource("InsetObjective")
 
 [node name="ObjectiveCard" type="PanelContainer" parent="UI/SafeArea/Layout/BottomRow"]
+unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(560, 0)
 size_flags_horizontal = 3
@@ -256,6 +287,7 @@ theme_override_font_sizes/font_size = 15
 text = "当前目标"
 
 [node name="HintLabel" type="Label" parent="UI/SafeArea/Layout/BottomRow/ObjectiveCard/ObjectivePadding/ObjectiveStack"]
+unique_name_in_owner = true
 autowrap_mode = 3
 theme_override_colors/font_color = Color(1, 0.980392, 0.94902, 1)
 theme_override_font_sizes/font_size = 22
@@ -295,7 +327,7 @@ text = "箱体面提示"
 theme_override_constants/separation = 10
 
 [node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot1"]
-custom_minimum_size = Vector2(14, 14)
+custom_minimum_size = Vector2(16, 16)
 size_flags_vertical = 4
 theme_override_colors/color = Color(0.956863, 0.701961, 0.247059, 1)
 
@@ -308,7 +340,7 @@ text = "普通  压普通按钮"
 theme_override_constants/separation = 10
 
 [node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot2"]
-custom_minimum_size = Vector2(14, 14)
+custom_minimum_size = Vector2(16, 16)
 size_flags_vertical = 4
 theme_override_colors/color = Color(0.968627, 0.486275, 0.345098, 1)
 
@@ -321,7 +353,7 @@ text = "冲击  撞开普通敌人"
 theme_override_constants/separation = 10
 
 [node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot3"]
-custom_minimum_size = Vector2(14, 14)
+custom_minimum_size = Vector2(16, 16)
 size_flags_vertical = 4
 theme_override_colors/color = Color(0.886275, 0.372549, 0.223529, 1)
 
@@ -334,7 +366,7 @@ text = "重压  重压按钮 / 装甲敌人"
 theme_override_constants/separation = 10
 
 [node name="Dot" type="ColorRect" parent="UI/SafeArea/Layout/BottomRow/LegendCard/LegendPadding/LegendContent/LegendDot4"]
-custom_minimum_size = Vector2(14, 14)
+custom_minimum_size = Vector2(16, 16)
 size_flags_vertical = 4
 theme_override_colors/color = Color(0.290196, 0.780392, 0.94902, 1)
 
@@ -354,7 +386,7 @@ layer = 10
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 2
+mouse_filter = 0
 color = Color(0, 0, 0, 0)
 
 [node name="SafeArea" type="MarginContainer" parent="PauseOverlay"]
@@ -375,6 +407,7 @@ alignment = 1
 theme_override_constants/separation = 20
 
 [node name="PauseCard" type="PanelContainer" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(400, 0)
 theme_override_styles/panel = SubResource("PauseCardStyle")
 
@@ -390,7 +423,7 @@ theme_override_constants/separation = 24
 [node name="PauseIcon" type="Label" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
 theme_override_colors/font_color = Color(0.349, 0.863, 1.0, 1.0)
 theme_override_font_sizes/font_size = 48
-text = "II"
+text = "⏸"
 horizontal_alignment = 1
 
 [node name="PauseTitle" type="Label" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
@@ -403,16 +436,22 @@ horizontal_alignment = 1
 theme_override_styles/separator = SubResource("SepCyan")
 
 [node name="ResumeButton" type="Button" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
+theme_override_styles/focus = SubResource("FocusCyan")
 text = "继续游戏"
 
 [node name="RestartButton" type="Button" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
+theme_override_styles/focus = SubResource("FocusCyan")
 text = "重新开始"
 
 [node name="QuitButton" type="Button" parent="PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
-text = "返回主界面"
+theme_override_styles/focus = SubResource("FocusCyan")
+text = "退出游戏"
 
 ; ════════════════════════════════════════════════════════════════════════════
 ;  LevelCompleteOverlay  (Item 2)
@@ -425,7 +464,7 @@ layer = 10
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-mouse_filter = 2
+mouse_filter = 0
 color = Color(0, 0, 0, 0)
 
 [node name="SafeArea" type="MarginContainer" parent="LevelCompleteOverlay"]
@@ -446,6 +485,7 @@ alignment = 1
 theme_override_constants/separation = 20
 
 [node name="CompleteCard" type="PanelContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(460, 0)
 theme_override_styles/panel = SubResource("CompleteCardStyle")
 
@@ -459,19 +499,22 @@ theme_override_constants/margin_bottom = 36
 theme_override_constants/separation = 20
 
 [node name="LevelKicker" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(0.349, 0.863, 1.0, 1.0)
 theme_override_font_sizes/font_size = 18
 text = "教程 01 / 05"
 horizontal_alignment = 1
 
 [node name="CompleteTitle" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(0.973, 0.980, 1.0, 1.0)
 theme_override_font_sizes/font_size = 32
 text = "本关完成！"
 horizontal_alignment = 1
 
 [node name="MoveCount" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
-theme_override_colors/font_color = Color(0.722, 0.596, 0.251, 1.0)
+unique_name_in_owner = true
+theme_override_colors/font_color = Color(1.0, 0.816, 0.376, 1.0)
 theme_override_font_sizes/font_size = 20
 text = "步数: 0"
 horizontal_alignment = 1
@@ -481,16 +524,19 @@ alignment = 1
 theme_override_constants/separation = 12
 
 [node name="Star1" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(1.0, 0.816, 0.376, 1.0)
 theme_override_font_sizes/font_size = 52
 text = "★"
 
 [node name="Star2" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(1.0, 0.816, 0.376, 1.0)
 theme_override_font_sizes/font_size = 52
 text = "★"
 
 [node name="Star3" type="Label" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow"]
+unique_name_in_owner = true
 theme_override_colors/font_color = Color(1.0, 0.816, 0.376, 1.0)
 theme_override_font_sizes/font_size = 52
 text = "★"
@@ -499,19 +545,29 @@ text = "★"
 theme_override_styles/separator = SubResource("SepGold")
 
 [node name="ButtonRow" type="HBoxContainer" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer"]
+unique_name_in_owner = true
 alignment = 1
 theme_override_constants/separation = 12
 
 [node name="NextButton" type="Button" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow"]
-custom_minimum_size = Vector2(0, 44)
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("FocusGold")
 text = "下一关"
 
 [node name="ReplayButton" type="Button" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow"]
-custom_minimum_size = Vector2(0, 44)
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("FocusGold")
 text = "重玩本关"
 
 [node name="SelectButton" type="Button" parent="LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow"]
-custom_minimum_size = Vector2(0, 44)
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+size_flags_horizontal = 3
+theme_override_styles/focus = SubResource("FocusGold")
 text = "选择关卡"
 
 [node name="Debug" type="Node" parent="."]

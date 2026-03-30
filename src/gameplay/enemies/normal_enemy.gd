@@ -5,7 +5,7 @@ class_name NormalEnemy
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const ENEMY_HEIGHT := 0.45
-const DEFEAT_DURATION := 0.2
+@export var defeat_duration := 0.2
 
 @export var accepted_face_kinds := PackedStringArray(["IMPACT", "HEAVY"])
 @export var enemy_group_name := "normal_enemy"
@@ -35,6 +35,10 @@ func _ready() -> void:
 	## checks run.
 	_bind_grid_motor()
 
+	## Self-register defeat sound with AudioManager (replaces global node_added listener).
+	if not defeated.is_connected(AudioManager.play_enemy_defeat):
+		defeated.connect(AudioManager.play_enemy_defeat)
+
 func can_be_defeated_by(face_kind: String) -> bool:
 	return accepted_face_kinds.has(face_kind)
 
@@ -50,8 +54,8 @@ func defeat(direction: Vector2i, face_kind: String) -> void:
 	if direction.x < 0 or direction.y < 0:
 		spin_direction = -1.0
 
-	status_light.light_color = Color(1.0, 0.92, 0.65, 1.0) if face_kind == "HEAVY" else Color(1.0, 0.72, 0.55, 1.0)
-	status_light.light_energy = 0.2
+	status_light.light_color = DesignTokens.LIGHT_ENEMY_DEFEAT_HEAVY if face_kind == "HEAVY" else DesignTokens.LIGHT_ENEMY_DEFEAT_NORMAL
+	status_light.light_energy = DesignTokens.LIGHT_ENEMY_DEFEAT_ENERGY
 
 	var tween := create_tween()
 	tween.set_parallel(true)
@@ -59,19 +63,19 @@ func defeat(direction: Vector2i, face_kind: String) -> void:
 		self,
 		"global_position",
 		global_position + launch_offset,
-		DEFEAT_DURATION
+		defeat_duration
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(
 		visual,
 		"rotation",
 		visual.rotation + Vector3(deg_to_rad(65.0), deg_to_rad(110.0 * spin_direction), 0.0),
-		DEFEAT_DURATION
+		defeat_duration
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_property(
 		visual,
 		"scale",
 		Vector3(0.25, 0.25, 0.25),
-		DEFEAT_DURATION
+		defeat_duration
 	).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	tween.finished.connect(queue_free)
 	defeated.emit()

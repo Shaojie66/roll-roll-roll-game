@@ -12,26 +12,36 @@ const LEVEL_PRESENTATION := [
 		"kicker": "教程 01 / 05",
 		"title": "滚动入门",
 		"subtitle": "先看懂箱子会翻滚，再记它的用途。",
+		"star3_max": 6,
+		"star2_max": 10,
 	},
 	{
 		"kicker": "教程 02 / 05",
 		"title": "按钮占位",
 		"subtitle": "圆形按钮需要持续压住，门不会自动永久开启。",
+		"star3_max": 8,
+		"star2_max": 14,
 	},
 	{
 		"kicker": "教程 03 / 05",
 		"title": "冲击与重压",
 		"subtitle": "不是所有顶面都能打穿敌人，先看状态再动手。",
+		"star3_max": 10,
+		"star2_max": 16,
 	},
 	{
 		"kicker": "教程 04 / 05",
 		"title": "能源供给",
 		"subtitle": "能源面是工具，不是终点，把它送到正确终端。",
+		"star3_max": 12,
+		"star2_max": 18,
 	},
 	{
 		"kicker": "教程 05 / 05",
 		"title": "一箱三用",
 		"subtitle": "开门、清敌、供能，要把同一个箱子重复利用。",
+		"star3_max": 16,
+		"star2_max": 24,
 	},
 ]
 const CONTROL_HINT_TEXT := "移动  W A S D / 方向键\n重开  R"
@@ -45,34 +55,34 @@ const INPUT_ACTIONS := {
 }
 
 @onready var world: Node3D = $World
-@onready var level_kicker_label: Label = $UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack/LevelKickerLabel
-@onready var level_title_label: Label = $UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack/LevelTitleLabel
-@onready var level_subtitle_label: Label = $UI/SafeArea/Layout/TopRow/LevelCard/LevelPadding/LevelStack/LevelSubtitleLabel
-@onready var controls_label: Label = $UI/SafeArea/Layout/TopRow/ControlsCard/ControlsPadding/ControlsStack/ControlsLabel
-@onready var hint_label: Label = $UI/SafeArea/Layout/BottomRow/ObjectiveCard/ObjectivePadding/ObjectiveStack/HintLabel
+@onready var level_kicker_label: Label = %LevelKickerLabel
+@onready var level_title_label: Label = %LevelTitleLabel
+@onready var level_subtitle_label: Label = %LevelSubtitleLabel
+@onready var controls_label: Label = %ControlsLabel
+@onready var hint_label: Label = %HintLabel
 
 ## Pause overlay nodes
 @onready var pause_overlay: CanvasLayer = $PauseOverlay
 @onready var pause_darken: ColorRect = $PauseOverlay/DarkenBg
-@onready var pause_card: PanelContainer = $PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard
-@onready var pause_resume_btn: Button = $PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer/ResumeButton
-@onready var pause_restart_btn: Button = $PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer/RestartButton
-@onready var pause_quit_btn: Button = $PauseOverlay/SafeArea/CenterContainer/VBoxContainer/PauseCard/PauseMargin/VBoxContainer/QuitButton
+@onready var pause_card: PanelContainer = %PauseCard
+@onready var pause_resume_btn: Button = %ResumeButton
+@onready var pause_restart_btn: Button = %RestartButton
+@onready var pause_quit_btn: Button = %QuitButton
 
 ## Level-complete overlay nodes
 @onready var complete_overlay: CanvasLayer = $LevelCompleteOverlay
 @onready var complete_darken: ColorRect = $LevelCompleteOverlay/DarkenBg
-@onready var complete_card: PanelContainer = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard
-@onready var complete_kicker: Label = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/LevelKicker
-@onready var complete_title: Label = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/CompleteTitle
-@onready var complete_moves: Label = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/MoveCount
-@onready var complete_star1: Label = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow/Star1
-@onready var complete_star2: Label = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow/Star2
-@onready var complete_star3: Label = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/StarRow/Star3
-@onready var complete_button_row: HBoxContainer = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow
-@onready var complete_next_btn: Button = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow/NextButton
-@onready var complete_replay_btn: Button = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow/ReplayButton
-@onready var complete_select_btn: Button = $LevelCompleteOverlay/SafeArea/CenterContainer/VBoxContainer/CompleteCard/CompleteMargin/VBoxContainer/ButtonRow/SelectButton
+@onready var complete_card: PanelContainer = %CompleteCard
+@onready var complete_kicker: Label = %LevelKicker
+@onready var complete_title: Label = %CompleteTitle
+@onready var complete_moves: Label = %MoveCount
+@onready var complete_star1: Label = %Star1
+@onready var complete_star2: Label = %Star2
+@onready var complete_star3: Label = %Star3
+@onready var complete_button_row: HBoxContainer = %ButtonRow
+@onready var complete_next_btn: Button = %NextButton
+@onready var complete_replay_btn: Button = %ReplayButton
+@onready var complete_select_btn: Button = %SelectButton
 
 var _current_level_index := 0
 var _active_level: Node
@@ -80,6 +90,8 @@ var _deny_restore_timer := 0.0
 var _deny_restore_delay := 2.0
 var _stored_hint := ""
 var _player_deny_connected := false
+var _deny_feedback_active := false
+var _hint_tween: Tween
 
 ## Guards against double-fire on rapid input during animations
 var _is_animating_out := false
@@ -97,6 +109,10 @@ func _ready() -> void:
 	complete_next_btn.pressed.connect(_on_complete_next_pressed)
 	complete_replay_btn.pressed.connect(_on_complete_replay_pressed)
 	complete_select_btn.pressed.connect(_on_complete_select_pressed)
+
+	# Hide post-MVP screens that aren't implemented yet so players
+	# don't hit dead-end stub messages during playtesting.
+	complete_select_btn.visible = false
 
 	# Start with overlays hidden
 	pause_overlay.visible = false
@@ -188,12 +204,12 @@ func _load_level(level_index: int) -> void:
 func _set_hint_text(text: String) -> void:
 	_stored_hint = text
 	if _deny_restore_timer <= 0.0:
-		var tween := create_tween()
-		tween.tween_property(hint_label, "modulate:a", 0.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		await tween.finished
-		hint_label.text = text
-		tween = create_tween()
-		tween.tween_property(hint_label, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		if _hint_tween != null and _hint_tween.is_valid():
+			_hint_tween.kill()
+		_hint_tween = create_tween()
+		_hint_tween.tween_property(hint_label, "modulate:a", 0.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_hint_tween.tween_callback(func(): hint_label.text = text)
+		_hint_tween.tween_property(hint_label, "modulate:a", 1.0, 0.15).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func _try_connect_player_deny_signal(level: Node) -> void:
 	if _player_deny_connected:
@@ -208,9 +224,14 @@ func _try_connect_player_deny_signal(level: Node) -> void:
 func _on_player_deny_feedback(reason: String) -> void:
 	_deny_restore_timer = _deny_restore_delay
 	hint_label.text = "[ %s ]" % reason
+	AudioManager.play_move_denied()
+
+	if _deny_feedback_active:
+		return
+	_deny_feedback_active = true
 
 	## Layer 2: flash ObjectiveCard border red for 0.15s
-	var obj_card := $UI/SafeArea/Layout/BottomRow/ObjectiveCard
+	var obj_card := %ObjectiveCard
 	var obj_style: StyleBoxFlat = obj_card.get_theme_stylebox("panel")
 	var saved_border_color := obj_style.border_color
 	obj_style.border_color = Color(1.0, 0.35, 0.35, 0.9)
@@ -222,9 +243,16 @@ func _on_player_deny_feedback(reason: String) -> void:
 	hint_label.modulate = Color(1.0, 0.7, 0.7)
 	await get_tree().create_timer(0.4).timeout
 	hint_label.modulate = saved_hint_modulate
+	_deny_feedback_active = false
 
 func _on_level_completed() -> void:
 	_set_hint_text("本关完成！")
+	## Play level-complete fanfare. Star count is computed from move_count in the overlay.
+	var move_count := 0
+	var grid_motor := _active_level.get_node_or_null("GridMotor")
+	if grid_motor != null and grid_motor.has_method("get_move_count"):
+		move_count = grid_motor.get_move_count()
+	AudioManager.play_level_complete(move_count, _star_count_for_moves(move_count))
 	await get_tree().create_timer(0.6).timeout
 	_show_level_complete_overlay()
 
@@ -246,10 +274,10 @@ func _show_level_complete_overlay() -> void:
 		complete_kicker.text = "教程 05 / 05"
 		complete_title.text = "教程已完成！"
 		complete_replay_btn.text = "再玩一次"
-		# Apply gold-filled button style
+		# Apply gold-filled button style using design token
 		var gold_style := StyleBoxFlat.new()
-		gold_style.bg_color = Color(1.0, 0.78, 0.25, 0.95)
-		gold_style.border_color = Color(1.0, 0.78, 0.25, 1.0)
+		gold_style.bg_color = Color(DesignTokens.ACCENT_GOLD_STAR, 0.95)
+		gold_style.border_color = DesignTokens.ACCENT_GOLD_STAR
 		gold_style.border_width_left = 2
 		gold_style.border_width_top = 2
 		gold_style.border_width_right = 2
@@ -355,6 +383,7 @@ func _show_pause_overlay() -> void:
 	pause_card.scale = Vector2(0.88, 0.88)
 	pause_darken.modulate.a = 0.0
 	get_tree().paused = true
+	AudioManager.play_pause_open()
 
 	# Open: DarkenBg alpha 0→0.55 over 200ms ease-out; Card scale 0.88→1.0 + alpha 0→1 over 300ms ease-out-back
 	var tween := create_tween()
@@ -386,6 +415,7 @@ func _hide_pause_overlay() -> void:
 	_is_animating_out = false
 
 func _on_pause_resume_pressed() -> void:
+	AudioManager.play_pause_close()
 	_hide_pause_overlay()
 
 func _on_pause_restart_pressed() -> void:
@@ -397,7 +427,7 @@ func _on_pause_restart_pressed() -> void:
 func _on_pause_quit_pressed() -> void:
 	_hide_pause_overlay()
 	await get_tree().create_timer(0.30).timeout
-	_set_hint_text("主界面开发中")
+	get_tree().quit()
 
 ## ─── HUD helpers ─────────────────────────────────────────────────────────────
 
@@ -414,8 +444,23 @@ func _update_level_hud() -> void:
 	level_subtitle_label.text = str(presentation.get("subtitle", ""))
 	_animate_level_card_in()
 
+## Returns 1-3 stars based on move count. Thresholds are per-level in LEVEL_PRESENTATION.
+func _star_count_for_moves(moves: int) -> int:
+	var pres: Dictionary = {}
+	if _current_level_index >= 0 and _current_level_index < LEVEL_PRESENTATION.size():
+		pres = LEVEL_PRESENTATION[_current_level_index]
+	var star3_max: int = pres.get("star3_max", 10)
+	var star2_max: int = pres.get("star2_max", 15)
+	if moves <= star3_max:
+		return 3
+	elif moves <= star2_max:
+		return 2
+	else:
+		return 1
+
+
 func _animate_level_card_in() -> void:
-	var card: PanelContainer = $UI/SafeArea/Layout/TopRow/LevelCard
+	var card: PanelContainer = %LevelCard
 	card.modulate = Color(1, 1, 1, 0)
 	var tween := create_tween()
 	tween.set_parallel(true)

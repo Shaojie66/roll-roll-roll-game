@@ -4,7 +4,7 @@ class_name SlidingDoor
 
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
-const ANIMATION_DURATION := 0.18
+@export var slide_animation_duration := 0.18
 
 @export var starts_open := false
 @export var open_offset := Vector3(0.0, 2.2, 0.0)
@@ -86,6 +86,8 @@ func _open_door(instant := false) -> void:
 	if _grid_motor != null:
 		_grid_motor.unregister_entity(self)
 
+	if not instant:
+		AudioManager.play_door_open()
 	_apply_visual_state(true, instant)
 
 func _close_door(instant := false) -> void:
@@ -100,6 +102,8 @@ func _close_door(instant := false) -> void:
 	if _grid_motor != null and _grid_motor.get_entity_at(grid_position) != self:
 		_grid_motor.register_entity(self)
 
+	if not instant:
+		AudioManager.play_door_close()
 	_apply_visual_state(false, instant)
 
 func _apply_visual_state(open_state: bool, instant := false) -> void:
@@ -116,9 +120,8 @@ func _apply_visual_state(open_state: bool, instant := false) -> void:
 			door_panel,
 			"position",
 			target_position,
-			ANIMATION_DURATION
+			slide_animation_duration
 		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
-	## StatusLight: open → gold (#FFD060, energy 0.45), closed → coral-red (energy 0.55)
-	status_light.light_color = Color(1.0, 0.815686, 0.376471, 1.0) if open_state else Color(1.0, 0.45, 0.4, 1.0)
-	status_light.light_energy = 0.45 if open_state else 0.55
+	status_light.light_color = DesignTokens.LIGHT_DOOR_OPEN if open_state else DesignTokens.LIGHT_DOOR_CLOSED
+	status_light.light_energy = DesignTokens.LIGHT_DOOR_OPEN_ENERGY if open_state else DesignTokens.LIGHT_DOOR_CLOSED_ENERGY

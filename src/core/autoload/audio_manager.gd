@@ -1,5 +1,4 @@
 extends Node
-
 class_name AudioManager
 ## Central audio routing autoload for the puzzle game.
 ##
@@ -7,35 +6,30 @@ class_name AudioManager
 ## Gameplay scripts call the public `play_*` API; this manager handles file
 ## loading, bus routing, variant selection, ducking, and music stem control.
 ##
-## Design documents: design/gdd/audio-direction.md, design/gdd/sfx-specification.md,
+## All AudioStreamPlayer nodes are created programmatically in _ready().
+## No .tscn file is required.
+##
+## Design documents: design/gdd/audio-tutorial-levels.md,
 ## design/gdd/audio-implementation.md
 ##
 ## Asset paths are rooted at res://assets/audio/. Files are OGG Vorbis.
-## Naming convention: [category]_[context]_[name]_[variant].ogg
-## Bus layout (see audio-direction.md §7.1):
-##   Master → [Music bus] → Stems A / B / C
-##          → [SFX bus]   → gameplay sounds
-##          → [UI bus]    → menu/HUD sounds
+## Naming convention: sfx_[name]_[variant].ogg  /  mus_stem_[name].ogg
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# ── Enums ─────────────────────────────────────────────────────────────────────
 
-const AUDIO_ROOT := "res://assets/audio/"
-
-## Map from RollingBox.current_face_kind() string to the face-type sub-folder.
-## NORMAL_A and NORMAL_B both route to the "normal" folder (2 variants each).
-## IMPACT_A and IMPACT_B both route to "impact" folder.
-const _FACE_KIND_TO_FOLDER := {
-	"NORMAL": "normal",
-	"IMPACT": "impact",
-	"HEAVY":  "heavy",
-	"ENERGY": "energy",
+## Box face types. Maps to the face-kind string returned by RollingBox.
+## Used for pitch/volume/reverb variation per face.
+enum FaceType {
+	NORMAL_A,
+	NORMAL_B,
+	IMPACT_A,
+	IMPACT_B,
+	HEAVY,
+	ENERGY,
 }
 
-## How many variants exist per face-type folder (used for round-robin wrap).
-const _VARIANT_COUNT := 3
-
-## Stem C accent types. Pass `play_stem_c(StemC.*)` to trigger a sting.
-enum StemC {
+## Stem C accent sting types. One AudioStreamPlayer per type.
+enum StemCType {
 	BUTTON  = 0,
 	DOOR    = 1,
 	SOCKET  = 2,
@@ -44,365 +38,458 @@ enum StemC {
 	COMPLETE = 5,
 }
 
-## Ducking depths (dB reduction applied during SFX/Stem C events).
-const _MUSIC_AB_DUCK_DB       := -4.0   ## gameplay SFX ducking (spec §5.1)
-const _MUSIC_STEM_C_DUCK_DB   := -6.0   ## Stem C fires over Stems A+B
-const _STEM_C_RESTORE_SEC      := 0.15   ## fade back to pre-duck volume
-const _MUSIC_PAUSE_DUCK_DB    := -10.46  ## −10.46 dB ≈ 30% linear (spec §5.1)
+# ── Asset root ────────────────────────────────────────────────────────────────
+
+const AUDIO_ROOT := "res://assets/audio/"
+
+# ── Face-type audio parameters ────────────────────────────────────────────────
+## From design/gdd/audio-implementation.md §9.2 / sfx-ffmpeg-lavfi-spec.md
+
+const _FACE_PITCH := {
+	FaceType.NORMAL_A: 1.0,
+	FaceType.NORMAL_B: 0.85,
+	FaceType.IMPACT_A: 1.1,
+	FaceType.IMPACT_B: 0.9,
+	FaceType.HEAVY:    0.5,
+	FaceType.ENERGY:   1.3,
+}
+
+const _FACE_VOLUME_DB := {
+	FaceType.NORMAL_A: -4.0,
+	FaceType.NORMAL_B: -4.0,
+	FaceType.IMPACT_A: -1.0,
+	FaceType.IMPACT_B: -1.0,
+	FaceType.HEAVY:     1.0,
+	FaceType.ENERGY:   -4.0,
+}
+
+const _FACE_REVERB_AMOUNT := {
+	FaceType.NORMAL_A: 0.10,
+	FaceType.NORMAL_B: 0.12,
+	FaceType.IMPACT_A: 0.15,
+	FaceType.IMPACT_B: 0.20,
+	FaceType.HEAVY:    0.25,
+	FaceType.ENERGY:   0.15,
+}
+
+# ── Ducking constants ─────────────────────────────────────────────────────────
+## From audio-implementation.md §5.1 and audio-direction.md §6.4
+
+const _MUSIC_AB_DUCK_DB     := -4.0  ## gameplay SFX ducking
+const _MUSIC_STEM_C_DUCK_DB := -6.0  ## Stem C fires over Stems A+B
+const _STEM_C_RESTORE_SEC    := 0.15  ## fade back after Stem C
+const _MUSIC_PAUSE_DUCK_DB   := -10.46  ## −10.46 dB ≈ 30% linear
 const _MUSIC_PAUSE_RESTORE_SEC := 0.20
 
-## Move-denied rate-limit window (spec §4.15: 1 per 400 ms).
-const _DENY_RATE_LIMIT_MS := 400
+# ── Timing constants ───────────────────────────────────────────────────────────
 
-## Star-award stagger offsets (spec §5.5: staggered 0 / 400 / 800 ms).
-const STAR_STAGGER_MS := 400
+const _DENY_RATE_LIMIT_MS := 400   ## move_denied: 1 per 400ms (spec §4.15)
+const _ENEMY_SILENCE_MS     := 200   ## enemy defeat: 80ms impact + 200ms silence
+const _STEM_B_DELAY_SEC    := 10.6  ## Stem B fades in after 4 bars at 90 BPM
+const _STAR_STAGGER_MS      := 400   ## star award stagger: 0 / 400 / 800 ms
 
-## Enemy defeat timing (spec §4.14): 80 ms impact + 200 ms silence.
-const _ENEMY_SILENCE_MS := 200
+# ── Stream cache ─────────────────────────────────────────────────────────────
 
-# ── Preloaded critical sounds ───────────────────────────────────────────────
-
-## Box roll variants — face-kind → array of preloaded AudioStream (3 per kind).
+## Box roll variants — keyed by face-type name string, each with 3 round-robin variants
 var _box_roll_streams: Dictionary = {}
 
-## Single-variant gameplay SFX.
-var _stream_player_step:     AudioStream
-var _stream_deny:             AudioStream
-var _stream_enemy_impact:     AudioStream
-var _stream_goal:             AudioStream
-var _stream_level_complete:   AudioStream
-var _stream_button_press:     Array[AudioStream]   ## 2 variants
-var _stream_button_release:   Array[AudioStream]   ## 2 variants
-var _stream_door_open:        Array[AudioStream]   ## 2 variants
-var _stream_door_close:       Array[AudioStream]   ## 2 variants
-var _stream_energy_socket:    Array[AudioStream]   ## 2 variants
+## Single-variant gameplay SFX
+var _stream_player_step:       Array[AudioStream]   ## 3 variants
+var _stream_deny:             AudioStream          ## 1 variant
+var _stream_enemy_defeat:     Array[AudioStream]   ## 1 variant (280ms total)
+var _stream_goal:             Array[AudioStream]   ## 1 variant
+var _stream_level_complete:   AudioStream          ## 1 variant (fanfare)
+var _stream_button_press:     Array[AudioStream]   ## 1 variant
+var _stream_button_release:   AudioStream          ## 1 variant
+var _stream_door_open:        Array[AudioStream]   ## 1 variant
+var _stream_door_close:       Array[AudioStream]   ## 1 variant
+var _stream_energy_socket:     Array[AudioStream]   ## 1 variant
 
-# ── Deferred (Tier-2) sounds ────────────────────────────────────────────────
-
+## Tier-2 UI SFX (deferred load)
 var _stream_pause_open:   AudioStream
 var _stream_pause_close:  AudioStream
-var _stream_ui_nav:       Array[AudioStream]   ## 2 variants
-var _stream_ui_confirm:   Array[AudioStream]   ## 2 variants
+var _stream_ui_nav:       Array[AudioStream]   ## 1 variant
+var _stream_ui_confirm:   Array[AudioStream]   ## 1 variant
 var _stream_star_award:   AudioStream
 
-# ── Stem C sting streams ────────────────────────────────────────────────────
+## Music stem streams
+var _stream_stem_a: AudioStream
+var _stream_stem_b: AudioStream
 
-var _stem_c_streams: Array[AudioStream]  ## 6 stings indexed by StemC enum
+## Stem C sting streams — indexed by StemCType enum
+var _stem_c_streams: Array[AudioStream]  ## 6 stings
 
-# ── Round-robin variant indices ──────────────────────────────────────────────
+# ── Round-robin indices ───────────────────────────────────────────────────────
 
-var _roll_rr_idx:  int = 0  ## cycles across all face kinds uniformly
+var _roll_rr_idx:  int = 0
 var _step_rr_idx:  int = 0
-var _btn_rr_idx:   int = 0
 var _door_open_rr: int = 0
 var _door_cls_rr:  int = 0
-var _socket_rr:    int = 0
 var _nav_rr:       int = 0
 var _confirm_rr:   int = 0
 
-# ── Rate-limiting state ──────────────────────────────────────────────────────
+# ── Rate-limiting state ───────────────────────────────────────────────────────
 
-var _last_deny_usec: int = 0  ## microseconds of last play_move_denied() call
+var _last_deny_usec: int = 0
 
-# ── Music state ─────────────────────────────────────────────────────────────
+# ── Music state ───────────────────────────────────────────────────────────────
 
-## Saved pre-duck AB volume (dB) for restore after ducking events.
 var _saved_ab_volume_db := 0.0
+var _music_bus_idx := -1
+var _music_stem_b_started := false
+var _is_ducked := false
 
-## True when a duck fade is currently in progress (prevents re-entrant tweens
-## on the same bus).
-var _music_ab_ducking := false
+# ── Button hum state ─────────────────────────────────────────────────────────
 
-# ── Audio player nodes ───────────────────────────────────────────────────────
+var _button_hum_player: AudioStreamPlayer
+var _button_hum_stream: AudioStream
+var _button_hum_ready := false
 
-## One-shot gameplay SFX (button press, door, goal, etc.).
-@onready var _player_sfx:     AudioStreamPlayer = $SFXPlayer
-## Player-step sounds (separate player so step cadence is independent).
-@onready var _player_step:    AudioStreamPlayer = $StepPlayer
-## Enemy defeat — dedicated player so the 200 ms silence can be timed precisely.
-@onready var _player_enemy:   AudioStreamPlayer = $EnemyPlayer
-## Level-complete fanfare — stops any prior instance before replaying.
-@onready var _player_complete: AudioStreamPlayer = $CompletePlayer
-## Music stems (all route through Music bus).
-@onready var _player_stem_a:  AudioStreamPlayer = $StemAPlayer
-@onready var _player_stem_b:  AudioStreamPlayer = $StemBPlayer
-## Stem C one-shot (plays over Stems A+B, ducks them).
-@onready var _player_stem_c:  AudioStreamPlayer = $StemCPlayer
-## UI sounds (menu clicks, pause, star award).
-@onready var _player_ui:      AudioStreamPlayer = $UIPlayer
+# ── Pool counters ────────────────────────────────────────────────────────────
 
-## Timers for deferred behaviour.
-@onready var _enemy_silence_timer: Timer     = $EnemySilenceTimer
-@onready var _stem_b_fade_timer:    Timer     = $StemBFadeTimer
-@onready var _music_restore_timer:  Timer     = $MusicRestoreTimer
+var _box_pool_idx := 0
+var _ui_pool_idx  := 0
+
+# ── Audio player nodes ────────────────────────────────────────────────────────
+## All created programmatically in _ready(). No .tscn file required.
+
+## Box roll pool — 6 nodes, round-robin
+var _box_pool: Array[AudioStreamPlayer] = []
+const BOX_POOL_SIZE := 6
+
+## Player step pool — 2 nodes
+var _step_pool: Array[AudioStreamPlayer] = []
+const STEP_POOL_SIZE := 2
+
+## UI pool — 4 nodes (shared for nav, confirm, star award)
+var _ui_pool: Array[AudioStreamPlayer] = []
+const UI_POOL_SIZE := 4
+
+## Door pool — 2 nodes
+var _door_pool: Array[AudioStreamPlayer] = []
+
+## Stem C pool — 6 nodes (one per sting type)
+var _stem_c_pool: Array[AudioStreamPlayer] = []
+
+## Dedicated one-shot players
+var _player_enemy:     AudioStreamPlayer
+var _player_complete:  AudioStreamPlayer
+var _player_goal:      AudioStreamPlayer
+var _player_deny:      AudioStreamPlayer
+var _player_energy:    AudioStreamPlayer
+var _player_btn_press: AudioStreamPlayer
+var _player_btn_release: AudioStreamPlayer
+
+## Music players
+var _player_stem_a: AudioStreamPlayer
+var _player_stem_b: AudioStreamPlayer
+
+## Timers
+var _enemy_silence_timer: Timer
+var _music_restore_timer: Timer
 
 # ── Lifecycle ────────────────────────────────────────────────────────────────
 
 func _ready() -> void:
-	_configure_player_bus($SFXPlayer,      "SFX")
-	_configure_player_bus($StepPlayer,     "SFX")
-	_configure_player_bus($EnemyPlayer,    "SFX")
-	_configure_player_bus($CompletePlayer,  "SFX")
-	_configure_player_bus($StemAPlayer,    "Music")
-	_configure_player_bus($StemBPlayer,    "Music")
-	_configure_player_bus($StemCPlayer,    "Music")
-	_configure_player_bus($UIPlayer,        "UI")
+	process_mode = Node.PROCESS_MODE_ALWAYS  ## not paused when tree is paused
+	_create_player_nodes()
+	_configure_buses()
+	_preload_streams()
 
+func _create_player_nodes() -> void:
+	## ── Box roll pool (6 nodes on SpatialSFX) ────────────────────────────
+	for i: int in BOX_POOL_SIZE:
+		var p := _make_player("BoxPool_%d" % i, "SpatialSFX")
+		_box_pool.append(p)
+		add_child(p)
+
+	## ── Step pool (2 nodes on SpatialSFX) ──────────────────────────────────
+	for i: int in STEP_POOL_SIZE:
+		var p := _make_player("StepPool_%d" % i, "SpatialSFX")
+		_step_pool.append(p)
+		add_child(p)
+
+	## ── UI pool (4 nodes on UI bus) ────────────────────────────────────────
+	for i: int in UI_POOL_SIZE:
+		var p := _make_player("UIPool_%d" % i, "UI")
+		_ui_pool.append(p)
+		add_child(p)
+
+	## ── Door pool (2 nodes on SpatialSFX) ──────────────────────────────────
+	for i: int in 2:
+		var p := _make_player("DoorPool_%d" % i, "SpatialSFX")
+		_door_pool.append(p)
+		add_child(p)
+
+	## ── Stem C pool (6 nodes on Music bus) ────────────────────────────────
+	for i: int in 6:
+		var p := _make_player("StemC_%d" % i, "Music")
+		_stem_c_pool.append(p)
+		add_child(p)
+
+	## ── Dedicated one-shot players ─────────────────────────────────────────
+	_player_enemy     = _make_player("Enemy",     "SpatialSFX"); add_child(_player_enemy)
+	_player_complete  = _make_player("Complete",  "MonoSFX");    add_child(_player_complete)
+	_player_goal      = _make_player("Goal",      "MonoSFX");    add_child(_player_goal)
+	_player_deny     = _make_player("Deny",      "MonoSFX");    add_child(_player_deny)
+	_player_energy    = _make_player("Energy",    "MonoSFX");    add_child(_player_energy)
+	_player_btn_press   = _make_player("BtnPress",   "MonoSFX"); add_child(_player_btn_press)
+	_player_btn_release = _make_player("BtnRelease", "MonoSFX"); add_child(_player_btn_release)
+
+	## ── Music players ─────────────────────────────────────────────────────
+	_player_stem_a = _make_player("StemA", "Music"); add_child(_player_stem_a)
+	_player_stem_b = _make_player("StemB", "Music"); add_child(_player_stem_b)
+	_player_stem_b.volume_db = -80.0  ## silent until start_music() fades it in
+
+	## ── Timers ─────────────────────────────────────────────────────────────
+	_enemy_silence_timer = Timer.new()
 	_enemy_silence_timer.one_shot = true
-	_music_restore_timer.one_shot = true
-	_music_restore_timer.timeout.connect(_on_music_restore_timeout)
+	_enemy_silence_timer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_enemy_silence_timer)
 	_enemy_silence_timer.timeout.connect(_on_enemy_silence_timeout)
 
-	_preload_critical_sounds()
-	_connect_gameplay_signals()
+	_music_restore_timer = Timer.new()
+	_music_restore_timer.one_shot = true
+	_music_restore_timer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_music_restore_timer)
+	_music_restore_timer.timeout.connect(_on_music_restore_timeout)
 
-	## Read the steady-state AB volume from the Music bus so ducking
-	## and restore always anchor to the right value.
-	_saved_ab_volume_db = _get_bus_volume_db(AudioServer.get_bus_index("Music"))
+
+func _make_player(name: String, bus: String) -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.name = name
+	p.bus = bus
+	return p
 
 
-## Load all Tier-1 + Tier-2 gameplay sounds synchronously.
-## UI Tier-2 (pause, nav, confirm, star) are deferred to first use.
-func _preload_critical_sounds() -> void:
-	## ── Box rolls (6 face-type folders × 3 variants each) ──────────────────
-	for folder: String in ["normal", "impact", "heavy", "energy"]:
+func _configure_buses() -> void:
+	## Read the steady-state Music bus volume so ducking anchors correctly.
+	_music_bus_idx = AudioServer.get_bus_index("Music")
+	if _music_bus_idx >= 0:
+		_saved_ab_volume_db = AudioServer.get_bus_volume_db(_music_bus_idx)
+
+
+# ── Stream loading ───────────────────────────────────────────────────────────
+
+func _preload_streams() -> void:
+	## ── Box rolls: 6 face types × 3 variants ─────────────────────────────
+	var face_type_map := {
+		"normal_a": "normal",
+		"normal_b": "normal",
+		"impact_a": "impact",
+		"impact_b": "impact",
+		"heavy":    "heavy",
+		"energy":   "energy",
+	}
+	var folders := ["normal", "impact", "heavy", "energy"]
+	for folder: String in folders:
 		var variants: Array[AudioStream] = []
-		for i: int in range(1, _VARIANT_COUNT + 1):
-			var stream := _load_stream("sfx/sfx_box_roll_%s_%02d.ogg" % [folder, i])
-			variants.append(stream)
+		for i: int in [1, 2, 3]:
+			var s := _load("sfx/sfx_box_roll_%s_%02d.ogg" % [folder, i])
+			variants.append(s)
 		_box_roll_streams[folder] = variants
 
-	## ── Player step (3 variants) ────────────────────────────────────────────
-	var step_variants: Array[AudioStream] = []
-	for i: int in range(1, _VARIANT_COUNT + 1):
-		step_variants.append(_load_stream("sfx/sfx_player_step_%02d.ogg" % i))
-	_stream_player_step = step_variants  ## stored as array; index used at play time
+	## ── Player step (3 variants) ───────────────────────────────────────────
+	for i: int in [1, 2, 3]:
+		_stream_player_step.append(_load("sfx/sfx_player_step_%02d.ogg" % i))
 
-	## ── Move denied (1 variant) ──────────────────────────────────────────────
-	_stream_deny = _load_stream("sfx/sfx_move_denied_01.ogg")
+	## ── Move denied ────────────────────────────────────────────────────────
+	_stream_deny = _load("sfx/sfx_move_denied_01.ogg")
 
-	## ── Enemy defeat impact (2 variants) ───────────────────────────────────
-	var enemy_variants: Array[AudioStream] = []
-	for i: int in range(1, 3):
-		enemy_variants.append(_load_stream("sfx/sfx_enemy_defeat_%02d.ogg" % i))
-	_stream_enemy_impact = enemy_variants  ## stored as array
+	## ── Enemy defeat ─────────────────────────────────────────────────────────
+	_stream_enemy_defeat.append(_load("sfx/sfx_enemy_defeat_01.ogg"))
 
-	## ── Goal activate (2 variants) ─────────────────────────────────────────
-	var goal_variants: Array[AudioStream] = []
-	for i: int in range(1, 3):
-		goal_variants.append(_load_stream("sfx/sfx_goal_activate_%02d.ogg" % i))
-	_stream_goal = goal_variants  ## array
+	## ── Goal activate ───────────────────────────────────────────────────────
+	_stream_goal.append(_load("sfx/sfx_goal_activate_01.ogg"))
 
-	## ── Level complete fanfare (1 variant) ─────────────────────────────────
-	_stream_level_complete = _load_stream("sfx/sfx_level_complete_01.ogg")
+	## ── Level complete fanfare ───────────────────────────────────────────────
+	_stream_level_complete = _load("sfx/sfx_level_complete_01.ogg")
 
-	## ── Button press (2 variants) ───────────────────────────────────────────
-	for i: int in range(1, 3):
-		_stream_button_press.append(_load_stream("sfx/sfx_button_press_%02d.ogg" % i))
+	## ── Button press ─────────────────────────────────────────────────────────
+	_stream_button_press.append(_load("sfx/sfx_button_press_01.ogg"))
 
-	## ── Button release (2 variants) ─────────────────────────────────────────
-	for i: int in range(1, 3):
-		_stream_button_release.append(_load_stream("sfx/sfx_button_release_%02d.ogg" % i))
+	## ── Button release ────────────────────────────────────────────────────────
+	_stream_button_release.append(_load("sfx/sfx_button_release_01.ogg"))
 
-	## ── Door open (2 variants) ───────────────────────────────────────────────
-	for i: int in range(1, 3):
-		_stream_door_open.append(_load_stream("sfx/sfx_door_open_%02d.ogg" % i))
+	## ── Door open / close ───────────────────────────────────────────────────
+	_stream_door_open.append(_load("sfx/sfx_door_open_01.ogg"))
+	_stream_door_close.append(_load("sfx/sfx_door_close_01.ogg"))
 
-	## ── Door close (2 variants) ─────────────────────────────────────────────
-	for i: int in range(1, 3):
-		_stream_door_close.append(_load_stream("sfx/sfx_door_close_%02d.ogg" % i))
-
-	## ── Energy socket (2 variants) ──────────────────────────────────────────
-	for i: int in range(1, 3):
-		_stream_energy_socket.append(_load_stream("sfx/sfx_energy_socket_activate_%02d.ogg" % i))
+	## ── Energy socket ────────────────────────────────────────────────────────
+	_stream_energy_socket.append(_load("sfx/sfx_energy_socket_activate_01.ogg"))
 
 	## ── Stem C accent stings (6 files) ─────────────────────────────────────
-	for type_val: int in StemC.size():
-		var names := ["button", "door", "socket", "goal", "enemy", "complete"]
-		var stream := _load_stream("music/mus_stem_c_%s.ogg" % names[type_val])
-		_stem_c_streams.append(stream)
+	var stem_c_names := ["button", "door", "socket", "goal", "enemy", "complete"]
+	for type_val: int in StemCType.size():
+		_stem_c_streams.append(_load("music/mus_stem_c_%s.ogg" % stem_c_names[type_val]))
+
+	## ── Music stems ─────────────────────────────────────────────────────────
+	_stream_stem_a = _load("music/mus_stem_a_pulse.ogg")
+	_stream_stem_b = _load("music/mus_stem_b_melodic.ogg")
 
 
-## Connect to gameplay signals so AudioManager reacts to game events
-## without requiring explicit calls from every gameplay script.
-func _connect_gameplay_signals() -> void:
-	var grid_motor := get_tree().get_first_node_in_group("grid_motor")
-	if grid_motor != null:
-		if grid_motor.has_signal("move_denied"):
-			grid_motor.connect("move_denied", _on_grid_motor_move_denied)
-		if grid_motor.has_signal("entity_move_finished"):
-			grid_motor.connect("entity_move_finished", _on_entity_move_finished)
-
-	var level_root := get_tree().get_first_node_in_group("level_root")
-	if level_root != null and level_root.has_signal("level_completed"):
-		level_root.connect("level_completed", _on_level_root_completed)
-
-	## Subscribe to all currently-existing enemy nodes.
-	for enemy: Node in get_tree().get_nodes_in_group("enemy"):
-		_subscribe_enemy_defeated_signal(enemy)
-	## Also subscribe to any enemies added in the future (level loads).
-	get_tree().node_added.connect(_on_node_added)
+func _load(relative: String) -> AudioStream:
+	var stream: AudioStream = ResourceLoader.load(
+		AUDIO_ROOT + relative, "", ResourceLoader.CACHE_MODE_REUSE)
+	if stream == null:
+		push_warning("AudioManager: could not load %s (file may not exist yet)" % relative)
+	return stream
 
 
-# ── Signal handlers ───────────────────────────────────────────────────────────
-
-func _on_grid_motor_move_denied(_actor: Node, _reason: String) -> void:
-	## Only play deny sound for player-issued denials, not box-issued denials.
-	## The player script (main.gd) handles the visual hint feedback.
-	## Rate limiting is applied inside play_move_denied().
-	pass
-
-func _on_entity_move_finished(entity: Node, _origin: Vector2i, _target: Vector2i) -> void:
-	if entity.is_in_group("player"):
-		play_player_step()
-	elif entity.is_in_group("rolling_box"):
-		if entity.has_method("current_face_kind"):
-			var face_kind: String = entity.current_face_kind()
-			play_box_roll(face_kind)
-	elif entity.is_in_group("enemy"):
-		## Enemy defeat audio fires via the NormalEnemy.defeated signal
-		## (wired in _connect_gameplay_signals below), not via this handler.
-
-func _on_level_root_completed() -> void:
-	## move_count and star_count are passed explicitly from main.gd, which
-	## owns the level-complete overlay and already computes both values there.
-	pass
+## Deferred load for Tier-2 UI sounds.
+func _defer_ui_stream(ref: AudioStream, path: String) -> AudioStream:
+	if ref != null:
+		return ref
+	return _load(path)
 
 
-# ── Core gameplay SFX ───────────────────────────────────────────────────────
+# ── Core gameplay SFX ────────────────────────────────────────────────────────
 
-## Play the box-roll sound for the given face kind.
-## Maps "NORMAL" / "IMPACT" / "HEAVY" / "ENERGY" to the correct audio folder
-## and cycles through 3 round-robin variants for natural variation.
-##
-## Spec: sfx-specification.md §4.2–§4.7 (face-type audio parameters).
-func play_box_roll(face_kind: String) -> void:
-	var folder: String = _FACE_KIND_TO_FOLDER.get(face_kind, "normal")
+## Play the box-roll sound for the given face type.
+## Cycles through 3 round-robin variants for natural variation.
+## Ducks Stems A+B by 4dB briefly.
+func play_box_roll(face_type: FaceType) -> void:
+	var folder: String
+	match face_type:
+		FaceType.NORMAL_A, FaceType.NORMAL_B: folder = "normal"
+		FaceType.IMPACT_A,  FaceType.IMPACT_B:  folder = "impact"
+		FaceType.HEAVY:                           folder = "heavy"
+		FaceType.ENERGY:                          folder = "energy"
+		_: return
+
 	var variants: Array = _box_roll_streams.get(folder, [])
 	if variants.is_empty():
 		return
 
-	var idx := _roll_rr_idx % variants.size()
-	_roll_rr_idx = (_roll_rr_idx + 1) % variants.size()
-	_play_stream(_player_sfx, variants[idx])
-	_duck_music_ab(_MUSIC_AB_DUCK_DB, 0.10, _STEM_C_RESTORE_SEC)
+	var idx := _box_pool_idx % _box_pool.size()
+	_box_pool_idx = (_box_pool_idx + 1) % _box_pool.size()
+	var player: AudioStreamPlayer = _box_pool[idx]
+	player.stream = variants[_roll_rr_idx % variants.size()]
+	_roll_rr_idx += 1
+	player.volume_db = _FACE_VOLUME_DB.get(face_type, 0.0)
+	player.reverb_amount = _FACE_REVERB_AMOUNT.get(face_type, 0.1)
+	player.play()
+	_duck_music_ab(_MUSIC_AB_DUCK_DB, 0.05, _STEM_C_RESTORE_SEC)
 
 
 ## Play the player-step sound. Cycles through 3 round-robin variants.
-##
-## Spec: sfx-specification.md §4.1 (player step parameters).
 func play_player_step() -> void:
-	var all_steps: Array = _stream_player_step as Array
-	if all_steps.is_empty():
+	if _stream_player_step.is_empty():
 		return
-	var idx := _step_rr_idx % all_steps.size()
-	_step_rr_idx = (_step_rr_idx + 1) % all_steps.size()
-	_play_stream(_player_step, all_steps[idx])
+	var idx := _step_rr_idx % _stream_player_step.size()
+	_step_rr_idx = (_step_rr_idx + 1) % _stream_player_step.size()
+	var pool_idx := 0  ## step pool always uses node 0 (only one step at a time)
+	_step_pool[pool_idx].stream = _stream_player_step[idx]
+	_step_pool[pool_idx].play()
 
 
-# ── Interactable SFX ─────────────────────────────────────────────────────────
+# ── Interactable SFX ──────────────────────────────────────────────────────────
 
-## Play the initial click-thunk when a box lands on a floor button.
-## Holds and hums while pressed are not yet implemented (spec §4.8 deferred).
-##
-## Spec: sfx-specification.md §4.8 (button press parameters).
+## Play the click-thunk when a box lands on a floor button.
+## Also triggers Stem C button accent.
 func play_button_press() -> void:
 	if _stream_button_press.is_empty():
 		return
-	var idx := _btn_rr_idx % _stream_button_press.size()
-	_btn_rr_idx = (_btn_rr_idx + 1) % _stream_button_press.size()
-	_play_stream(_player_sfx, _stream_button_press[idx])
-	play_stem_c(StemC.BUTTON)
+	_player_btn_press.stream = _stream_button_press[0]
+	_player_btn_press.play()
+	play_stem_c(StemCType.BUTTON)
+
+
+## Fade out and stop the sustained button hum loop.
+func stop_button_hum() -> void:
+	if _button_hum_player == null or not _button_hum_player.playing:
+		return
+	var tween := create_tween()
+	tween.tween_property(_button_hum_player, "volume_db", -80.0, 0.1)
+	await tween.finished
+	_button_hum_player.stop()
+
+
+## Start the sustained hum loop when a box rests on a floor button.
+func start_button_hum() -> void:
+	if not _button_hum_ready:
+		_button_hum_player = _make_player("ButtonHum", "MonoSFX")
+		_button_hum_player.bus = "MonoSFX"
+		add_child(_button_hum_player)
+		_button_hum_stream = _load("sfx/sfx_button_hum_loop.ogg")
+		if _button_hum_stream != null:
+			_button_hum_stream.loop = true
+		_button_hum_ready = true
+
+	if _button_hum_stream != null:
+		_button_hum_player.stream = _button_hum_stream
+		_button_hum_player.volume_db = 0.0
+		_button_hum_player.play()
 
 
 ## Play the release thunk when a box leaves a floor button.
-##
-## Spec: sfx-specification.md §4.9 (button release parameters).
 func play_button_release() -> void:
 	if _stream_button_release.is_empty():
 		return
-	var idx := _btn_rr_idx % _stream_button_release.size()
-	_btn_rr_idx = (_btn_rr_idx + 1) % _stream_button_release.size()
-	_play_stream(_player_sfx, _stream_button_release[idx])
+	_player_btn_release.stream = _stream_button_release[0]
+	_player_btn_release.play()
 
 
-## Play the panel-slide sound when a door begins opening.
-## Cycles through 2 round-robin variants.
-##
-## Spec: sfx-specification.md §4.10 (door open parameters).
+## Play the panel-slide sound when a door opens.
+## Triggers Stem C door accent.
 func play_door_open() -> void:
 	if _stream_door_open.is_empty():
 		return
-	var idx := _door_open_rr % _stream_door_open.size()
-	_door_open_rr = (_door_open_rr + 1) % _stream_door_open.size()
-	_play_stream(_player_sfx, _stream_door_open[idx])
-	_duck_music_ab(_MUSIC_AB_DUCK_DB, 0.10, _STEM_C_RESTORE_SEC)
-	play_stem_c(StemC.DOOR)
+	var idx := _door_open_rr % _door_pool.size()
+	_door_open_rr = (_door_open_rr + 1) % _door_pool.size()
+	_door_pool[idx].stream = _stream_door_open[idx % _stream_door_open.size()]
+	_door_pool[idx].play()
+	_duck_music_ab(_MUSIC_AB_DUCK_DB, 0.05, _STEM_C_RESTORE_SEC)
+	play_stem_c(StemCType.DOOR)
 
 
-## Play the panel-slide sound when a door begins closing.
-## Cycles through 2 round-robin variants.
-##
-## Spec: sfx-specification.md §4.11 (door close parameters).
+## Play the panel-slide sound when a door closes.
 func play_door_close() -> void:
 	if _stream_door_close.is_empty():
 		return
-	var idx := _door_cls_rr % _stream_door_close.size()
-	_door_cls_rr = (_door_cls_rr + 1) % _stream_door_close.size()
-	_play_stream(_player_sfx, _stream_door_close[idx])
+	var idx := _door_cls_rr % _door_pool.size()
+	_door_cls_rr = (_door_cls_rr + 1) % _door_pool.size()
+	# Use a box pool node for close sound (door pool may still be playing open)
+	var pool_idx := _box_pool_idx % _box_pool.size()
+	_box_pool[pool_idx].stream = _stream_door_close[idx]
+	_box_pool[pool_idx].play()
 
 
-## Play the rising electric hum + chime when a box with the ENERGY face
-## enters an energy socket.
-## Cycles through 2 round-robin variants.
-##
-## Spec: sfx-specification.md §4.12 (energy socket parameters).
-func play_energy_socket() -> void:
+## Play the rising electric hum when a box enters an energy socket.
+## Triggers Stem C socket accent.
+func play_energy_socket_activate() -> void:
 	if _stream_energy_socket.is_empty():
 		return
-	var idx := _socket_rr % _stream_energy_socket.size()
-	_socket_rr = (_socket_rr + 1) % _stream_energy_socket.size()
-	_play_stream(_player_sfx, _stream_energy_socket[idx])
-	play_stem_c(StemC.SOCKET)
+	_player_energy.stream = _stream_energy_socket[0]
+	_player_energy.play()
+	play_stem_c(StemCType.SOCKET)
 
 
-## Play the warm chime + harmonic swell when the player steps onto the goal.
-## Plays once; does not retrigger while player remains on goal.
-## Cycles through 2 round-robin variants.
-##
-## Spec: sfx-specification.md §4.13 (goal activate parameters).
+## Play the warm chime when the player steps onto the goal.
+## Triggers Stem C goal accent.
 func play_goal_activate() -> void:
 	if _stream_goal.is_empty():
 		return
-	var idx := _btn_rr_idx % _stream_goal.size()
-	_play_stream(_player_sfx, _stream_goal[idx])
-	_duck_music_ab(_MUSIC_AB_DUCK_DB, 0.10, _STEM_C_RESTORE_SEC)
-	play_stem_c(StemC.GOAL)
+	_player_goal.stream = _stream_goal[0]
+	_player_goal.play()
+	_duck_music_ab(_MUSIC_AB_DUCK_DB, 0.05, _STEM_C_RESTORE_SEC)
+	play_stem_c(StemCType.GOAL)
 
 
-## Play the enemy-defeat impact, followed by exactly 200 ms of silence,
-## then Stem C enemy accent. Two separate players and a timer implement
-## the precise timing cleanly (the silence is in code, not baked into the
-## audio file — making it variant-tweakable and easier to maintain).
-## Cycles through 2 impact variants.
-##
-## Spec: sfx-specification.md §4.14 (enemy defeat: 80 ms impact + 200 ms silence).
+## Play the enemy-defeat impact. After 200ms silence, fires Stem C enemy accent.
 func play_enemy_defeat() -> void:
-	if _stream_enemy_impact.is_empty():
+	if _stream_enemy_defeat.is_empty():
 		return
-	var idx := _btn_rr_idx % (_stream_enemy_impact as Array).size()
-	_play_stream(_player_enemy, _stream_enemy_impact[idx])
+	_player_enemy.stream = _stream_enemy_defeat[0]
+	_player_enemy.play()
 
-	## Kill any in-progress silence timer so rapid defeats don't accumulate.
+	## Stop any in-progress silence timer so rapid defeats don't accumulate.
 	_enemy_silence_timer.stop()
 	_enemy_silence_timer.wait_time = _ENEMY_SILENCE_MS / 1000.0
 	_enemy_silence_timer.start()
 
 
-## Rate-limited (1 per 400 ms) soft error tone for invalid moves.
-## Called by main.gd when GridMotor.move_denied fires for the player actor.
-##
-## Spec: sfx-specification.md §4.15 (move denied: 1 per 400 ms rate limit).
+## Rate-limited (1 per 400ms) soft error tone for invalid moves.
 func play_move_denied() -> void:
 	var now_usec := Time.get_ticks_usec()
 	if (now_usec - _last_deny_usec) < _DENY_RATE_LIMIT_MS * 1000:
@@ -411,373 +498,244 @@ func play_move_denied() -> void:
 
 	if _stream_deny == null:
 		return
-	_play_stream(_player_sfx, _stream_deny)
+	_player_deny.stream = _stream_deny
+	_player_deny.play()
 
 
 # ── Level SFX ─────────────────────────────────────────────────────────────────
 
-## Play the ascending toy fanfare and schedule staggered star-award chimes.
-## Music ducks to 60% during the fanfare (spec §5.1).
-## star_count controls how many stars actually animate; pass 3 for all three.
-##
-## Called by main.gd when LevelRoot.level_completed fires.
-## Spec: sfx-specification.md §4.16 (level complete fanfare + star award stagger).
-func play_level_complete(move_count: int, star_count: int) -> void:
+## Play the ascending fanfare and schedule staggered star-award chimes.
+## Ducks music during the fanfare.
+func play_level_complete(_move_count: int, star_count: int) -> void:
 	if _stream_level_complete == null:
 		return
-	_play_stream(_player_complete, _stream_level_complete)
+	_player_complete.stream = _stream_level_complete
+	_player_complete.play()
 
-	## Music duck to 60% (−4.44 dB) during the fanfare (spec §5.1).
+	## Duck music to 60% (−4.44 dB) during fanfare.
 	_duck_music_ab(-4.44, 0.10, 2.50)
 
-	## Schedule staggered star chimes at 0 ms, 400 ms, 800 ms.
-	var stars_to_award := mini(star_count, 3)  ## cap at 3 stars
+	## Schedule staggered star chimes at 0 / 400 / 800 ms.
+	var stars_to_award := mini(star_count, 3)
 	for i: int in stars_to_award:
-		var delay := i * STAR_STAGGER_MS / 1000.0
+		var delay := i * _STAR_STAGGER_MS / 1000.0
 		await get_tree().create_timer(delay).timeout
-		play_star_award(0.0)
+		play_star_award()
 
 
-# ── UI SFX ───────────────────────────────────────────────────────────────────
+# ── UI SFX ────────────────────────────────────────────────────────────────────
 
-## Play the pause-overlay open whoosh/click.
-## Music ducks to 30% (spec §5.1: pause state).
-func play_pause_open() -> void:
-	_defer_ui_stream($stream_pause_open, "sfx/sfx_pause_open_01.ogg", _stream_pause_open)
-	if _stream_pause_open != null:
-		_play_stream(_player_ui, _stream_pause_open)
-	_pause_music()
-
-
-## Play the pause-overlay close sound. Music restores to 100%.
-func play_pause_close() -> void:
-	_defer_ui_stream($stream_pause_close, "sfx/sfx_pause_close_01.ogg", _stream_pause_close)
-	if _stream_pause_close != null:
-		_play_stream(_player_ui, _stream_pause_close)
-	## resume_music() is called by main.gd after the overlay closes.
-	resume_music()
-
-
-## Crisp click for menu navigation focus changes.
-## Cycles through 2 round-robin variants.
+## Crisp click for menu navigation.
 func play_ui_nav() -> void:
-	_defer_ui_stream_array(_stream_ui_nav, "sfx/sfx_ui_nav_%02d.ogg", 2, _stream_ui_nav)
 	if _stream_ui_nav.is_empty():
+		_stream_ui_nav.append(null)
+	_stream_ui_nav[0] = _defer_ui_stream(_stream_ui_nav[0], "sfx/sfx_ui_nav_01.ogg")
+	if _stream_ui_nav[0] == null:
 		return
-	var idx := _nav_rr % _stream_ui_nav.size()
-	_nav_rr = (_nav_rr + 1) % _stream_ui_nav.size()
-	_play_stream(_player_ui, _stream_ui_nav[idx])
+	var idx := _ui_pool_idx % _ui_pool.size()
+	_ui_pool_idx = (_ui_pool_idx + 1) % _ui_pool.size()
+	_ui_pool[idx].stream = _stream_ui_nav[0]
+	_ui_pool[idx].play()
 
 
 ## Soft positive blip for UI button confirmation.
-## Cycles through 2 round-robin variants.
 func play_ui_confirm() -> void:
-	_defer_ui_stream_array(_stream_ui_confirm, "sfx/sfx_ui_confirm_%02d.ogg", 2, _stream_ui_confirm)
 	if _stream_ui_confirm.is_empty():
+		_stream_ui_confirm.append(null)
+	_stream_ui_confirm[0] = _defer_ui_stream(_stream_ui_confirm[0], "sfx/sfx_ui_confirm_01.ogg")
+	if _stream_ui_confirm[0] == null:
 		return
-	var idx := _confirm_rr % _stream_ui_confirm.size()
-	_confirm_rr = (_confirm_rr + 1) % _stream_ui_confirm.size()
-	_play_stream(_player_ui, _stream_ui_confirm[idx])
+	var idx := _ui_pool_idx % _ui_pool.size()
+	_ui_pool_idx = (_ui_pool_idx + 1) % _ui_pool.size()
+	_ui_pool[idx].stream = _stream_ui_confirm[0]
+	_ui_pool[idx].play()
 
 
-## Play a single star-award chime. Call once per star with the appropriate
-## stagger delay (handled by play_level_complete()).
-## The delay parameter is the in-call delay; stagger is managed by the caller.
-## On-demand load: first call loads the file; subsequent calls use the cache.
-func play_star_award(delay: float) -> void:
-	_defer_ui_stream($stream_star_award, "sfx/sfx_star_award_01.ogg", _stream_star_award)
+## Play a single star-award chime.
+func play_star_award() -> void:
+	if _stream_star_award == null:
+		_stream_star_award = _defer_ui_stream(_stream_star_award, "sfx/sfx_star_award_01.ogg")
 	if _stream_star_award == null:
 		return
+	var idx := _ui_pool_idx % _ui_pool.size()
+	_ui_pool_idx = (_ui_pool_idx + 1) % _ui_pool.size()
+	_ui_pool[idx].stream = _stream_star_award
+	_ui_pool[idx].play()
 
-	if delay > 0.0:
-		await get_tree().create_timer(delay).timeout
-	_play_stream(_player_ui, _stream_star_award)
+
+## Play the pause-overlay open whoosh.
+## Pauses music during pause state.
+func play_pause_open() -> void:
+	_stream_pause_open = _defer_ui_stream(_stream_pause_open, "sfx/sfx_pause_open_01.ogg")
+	if _stream_pause_open != null:
+		var idx := _ui_pool_idx % _ui_pool.size()
+		_ui_pool_idx = (_ui_pool_idx + 1) % _ui_pool.size()
+		_ui_pool[idx].stream = _stream_pause_open
+		_ui_pool[idx].play()
+	pause_music()
 
 
-# ── Music ────────────────────────────────────────────────────────────────────
+## Play the pause-overlay close sound.
+func play_pause_close() -> void:
+	_stream_pause_close = _defer_ui_stream(_stream_pause_close, "sfx/sfx_pause_close_01.ogg")
+	if _stream_pause_close != null:
+		var idx := _ui_pool_idx % _ui_pool.size()
+		_ui_pool_idx = (_ui_pool_idx + 1) % _ui_pool.size()
+		_ui_pool[idx].stream = _stream_pause_close
+		_ui_pool[idx].play()
+	resume_music()
 
-## Start the adaptive music: fade in Stem A over 2 s (spec §6.1).
-## Stem B fades in after 4 bars at ~85 BPM = ~5.65 s.
-## All stems loop seamlessly (AudioStreamPlayer with stream set at start).
+
+# ── Menu SFX ───────────────────────────────────────────────────────────────────
+
+## Hover blip for menu items.
+func play_menu_hover() -> void:
+	## Reuse the UI nav sound for menu hover.
+	play_ui_nav()
+
+
+## Select click for menu items.
+func play_menu_select() -> void:
+	## Reuse the UI confirm sound.
+	play_ui_confirm()
+
+
+# ── Music ─────────────────────────────────────────────────────────────────────
+
+## Start the adaptive 3-stem music:
+##   Stem A fades in immediately at -18dB.
+##   Stem B fades in after 4 bars (~10.6s at 90 BPM).
 func start_music() -> void:
-	## Load stem files on first use.
-	_defer_stem_a()
-	_defer_stem_b()
-
-	if _player_stem_a.stream != null:
-		_player_stem_a.volume_db = -80.0  ## silent before fade
+	if _stream_stem_a != null:
+		_player_stem_a.stream = _stream_stem_a
+		_player_stem_a.volume_db = -80.0
 		_player_stem_a.play()
-		_fade_in_player(_player_stem_a, 0.0, 0.0, 2.0)  ## 2 s crossfade in
+		var tw := create_tween()
+		tw.tween_property(_player_stem_a, "volume_db", -18.0, 2.0) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
-	## Stem B fades in after 4 bars (spec §6.1: 85-100 BPM, 4-bar delay).
-	_stem_b_fade_timer.wait_time = 5.65
-	_stem_b_fade_timer.one_shot = true
-	_stem_b_fade_timer.timeout.connect(_on_stem_b_fade_in)
-	_stem_b_fade_timer.start()
+	if _stream_stem_b != null:
+		_player_stem_b.volume_db = -80.0
+		await get_tree().create_timer(_STEM_B_DELAY_SEC).timeout
+		_player_stem_b.stream = _stream_stem_b
+		_player_stem_b.play()
+		var tw := create_tween()
+		tw.tween_property(_player_stem_b, "volume_db", -12.0, 2.0) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_music_stem_b_started = true
 
 
-## Play a Stem C accent sting. Stems A+B duck briefly while Stem C plays.
-## type: StemC enum value (BUTTON=0 … COMPLETE=5).
-func play_stem_c(type: int) -> void:
-	_defer_stem_c()
+## Fade out both stems and stop.
+func stop_music(fade_time: float = 1.5) -> void:
+	var tw := create_tween().set_parallel(true)
+	if _player_stem_a.playing:
+		tw.tween_property(_player_stem_a, "volume_db", -80.0, fade_time) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	if _player_stem_b.playing:
+		tw.tween_property(_player_stem_b, "volume_db", -80.0, fade_time) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tw.finished
+	_player_stem_a.stop()
+	_player_stem_b.stop()
 
+
+## Play a Stem C accent sting on a dedicated player.
+## Does NOT duck Stems A+B — caller is responsible for ducking.
+func play_stem_c(type: StemCType) -> void:
 	var idx := type as int
 	if idx < 0 or idx >= _stem_c_streams.size():
 		return
 	var stream: AudioStream = _stem_c_streams[idx]
 	if stream == null:
 		return
-
-	## Duck Stems A+B (Stem C plays on top at spec volume −6 dB).
-	_duck_music_ab(_MUSIC_STEM_C_DUCK_DB, 0.05, 0.50)
-	_play_stream(_player_stem_c, stream)
+	_stem_c_pool[idx].stream = stream
+	_stem_c_pool[idx].play()
 
 
-## Duck music to 30% (−10.46 dB) during pause. Called by play_pause_open()
-## and optionally by main.gd when the pause overlay is shown.
+## Duck the Music bus by `amount_db` for `duration_s`.
+func duck_music(amount_db: float, duration_s: float) -> void:
+	_duck_music_ab(amount_db, 0.05, duration_s)
+
+
+## Restore the Music bus to pre-duck volume.
+func restore_music(duration_s: float = 0.2) -> void:
+	_restore_music_ab(duration_s)
+
+
+## Pause Stems A+B (call when entering pause state).
 func pause_music() -> void:
-	_pause_stream(_player_stem_a)
-	_pause_stream(_player_stem_b)
-	## Stem C is a one-shot — it stops naturally; no need to pause it.
+	if _player_stem_a.playing:
+		_player_stem_a.stop()
+	if _player_stem_b.playing:
+		_player_stem_b.stop()
 
 
-## Restore music to 100% after unpause. Called by play_pause_close()
-## and by main.gd after the pause overlay hides.
+## Resume Stems A+B (call when exiting pause state).
 func resume_music() -> void:
-	_resume_stream(_player_stem_a)
-	_resume_stream(_player_stem_b)
+	if _player_stem_a.stream != null and not _player_stem_a.playing:
+		_player_stem_a.play()
+	if _player_stem_b.stream != null and not _player_stem_b.playing:
+		_player_stem_b.play()
 
 
-## Set the music intensity for a level group (1–3).
-## Level group 1: very sparse (1 note at a time).
-## Level group 2: two-note patterns.
-## Level group 3: full pentatonic phrases.
-## Currently adjusts Stem B volume as a proxy for intensity.
-## Future: swap Stem B to a level-group-specific stem file.
+## Stub for music intensity control (post-MVP).
+## Adjusts Stem B volume as a proxy for intensity.
 func set_music_intensity(level_group: int) -> void:
 	match level_group:
-		1: _player_stem_b.volume_db = -18.0  ## barely audible
+		1: _player_stem_b.volume_db = -18.0
 		2: _player_stem_b.volume_db = -14.0
-		3: _player_stem_b.volume_db = -12.0  ## full
-		_: _player_stem_b.volume_db = -12.0
+		3: _player_stem_b.volume_db = -12.0
+		_: pass
 
 
-# ── Internal helpers ─────────────────────────────────────────────────────────
+# ── Internal ducking ──────────────────────────────────────────────────────────
 
-## Play a stream on a player node, stopping any prior instance first.
-func _play_stream(player: AudioStreamPlayer, stream: AudioStream) -> void:
-	if stream == null or player == null:
-		return
-	player.stream = stream
-	player.play()
-
-
-## Stop a player node.
-func _stop_stream(player: AudioStreamPlayer) -> void:
-	if player != null:
-		player.stop()
-
-
-## Pause a player (stores and clears stream, then pauses).
-func _pause_stream(player: AudioStreamPlayer) -> void:
-	if player != null and player.playing:
-		player.stop()
-
-
-## Resume a player (restart from current position — simple for looping stems).
-func _resume_stream(player: AudioStreamPlayer) -> void:
-	if player != null and player.stream != null and not player.playing:
-		player.play()
-
-
-## Fade a player's volume_db from its current value to `target_db` over `duration` s.
-func _fade_player(player: AudioStreamPlayer, target_db: float, duration: float) -> void:
-	if player == null:
-		return
-	var tween := create_tween()
-	tween.tween_property(player, "volume_db", target_db, duration) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-
-## Fade a player from `from_db` to `to_db` over `duration` s.
-func _fade_from_to(player: AudioStreamPlayer, from_db: float, to_db: float, duration: float) -> void:
-	if player == null:
-		return
-	player.volume_db = from_db
-	var tween := create_tween()
-	tween.tween_property(player, "volume_db", to_db, duration) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-
-## Fade a player from current volume to `target_db` over `duration` s
-## (used when the player is already playing so we can't read "from" easily).
-func _fade_in_player(player: AudioStreamPlayer, _from_db: float, _to_db: float, duration: float) -> void:
-	if player == null:
-		return
-	var tween := create_tween()
-	tween.tween_property(player, "volume_db", _to_db, duration) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-
-## Duck Stems A+B by `duck_db` dB, then restore after `restore_after` s.
-## Uses the Music bus volume as the control point.
 func _duck_music_ab(duck_db: float, fade_down: float, restore_after: float) -> void:
-	var music_idx := AudioServer.get_bus_index("Music")
-	if music_idx < 0:
+	if _music_bus_idx < 0:
 		return
 
-	var current_db := _get_bus_volume_db(music_idx)
-	var target_db := current_db + duck_db
-
-	## Stop any in-progress restore timer to prevent re-entrant ducking.
 	_music_restore_timer.stop()
 	_music_restore_timer.start(restore_after)
-	_saved_ab_volume_db = current_db  ## anchor before ducking
 
-	## Fade music bus down.
+	var current_db := AudioServer.get_bus_volume_db(_music_bus_idx)
+	if not _is_ducked:
+		_saved_ab_volume_db = current_db
+		_is_ducked = true
+
+	var target_db := _saved_ab_volume_db + duck_db
 	var tween := create_tween()
 	tween.tween_method(
-		func(db: float) -> void: _set_bus_volume_db(music_idx, db),
+		func(db: float) -> void: AudioServer.set_bus_volume_db(_music_bus_idx, db),
 		current_db, target_db, fade_down
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
-## Called by _music_restore_timer after the duck period expires.
-func _on_music_restore_timeout() -> void:
-	var music_idx := AudioServer.get_bus_index("Music")
-	if music_idx < 0:
+func _restore_music_ab(restore_duration: float) -> void:
+	if _music_bus_idx < 0:
 		return
+	_music_restore_timer.stop()
+	var current := AudioServer.get_bus_volume_db(_music_bus_idx)
 	var tween := create_tween()
-	var current := _get_bus_volume_db(music_idx)
 	tween.tween_method(
-		func(db: float) -> void: _set_bus_volume_db(music_idx, db),
-		current, _saved_ab_volume_db, _STEM_C_RESTORE_SEC
+		func(db: float) -> void: AudioServer.set_bus_volume_db(_music_bus_idx, db),
+		current, _saved_ab_volume_db, restore_duration
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
-## Called after enemy defeat impact plays — fires Stem C accent after silence.
+# ── Timer callbacks ───────────────────────────────────────────────────────────
+
 func _on_enemy_silence_timeout() -> void:
-	play_stem_c(StemC.ENEMY)
+	## After 200ms silence following the enemy impact, play Stem C enemy accent.
+	play_stem_c(StemCType.ENEMY)
 
 
-## Fade Stem B in after the 4-bar delay from start_music().
-func _on_stem_b_fade_in() -> void:
-	if _player_stem_b.stream != null:
-		_player_stem_b.volume_db = -80.0
-		_player_stem_b.play()
-		_fade_in_player(_player_stem_b, -80.0, 0.0, 2.0)  ## 2 s fade in to 0 dB
-
-
-# ── On-demand / deferred loading helpers ─────────────────────────────────────
-
-func _defer_stem_a() -> void:
-	if _player_stem_a.stream == null:
-		_player_stem_a.stream = _load_stream("music/mus_stem_a_bed.ogg")
-		_player_stem_a.bus = "Music"
-
-func _defer_stem_b() -> void:
-	if _player_stem_b.stream == null:
-		_player_stem_b.stream = _load_stream("music/mus_stem_b_melodic.ogg")
-		_player_stem_b.bus = "Music"
-
-func _defer_stem_c() -> void:
-	## Stem C streams are already preloaded; this is a no-op hook for future
-	## lazy-loading if preloading Strategy is ever adjusted.
-	pass
-
-## Load a single AudioStream, returning null if the file is missing.
-## Missing files are not fatal — the play_* methods guard against null streams.
-func _load_stream(relative_path: String) -> AudioStream:
-	var full_path := AUDIO_ROOT + relative_path
-	var stream: AudioStream = ResourceLoader.load(full_path, "",
-		ResourceLoader.CACHE_MODE_IGNORE) as AudioStream
-	if stream == null:
-		push_warning("AudioManager: could not load %s (file may not exist yet)" % full_path)
-	return stream
-
-
-## On-demand load a single stream into a stored variable reference.
-## The `ref` parameter is a node reference used as a storage sentinel so the
-## call site can update the outer-class variable directly.
-func _defer_ui_stream(ref_node: Node, path_template: String, ref: AudioStream) -> AudioStream:
-	if ref != null:
-		return ref
-	var path := path_template % [1]  ## always load variant 01 first
-	## Strip any % formatting to get the actual path.
-	var clean_path := path_template % 1
-	var stream := _load_stream(clean_path)
-	if ref_node is AudioStreamPlayer:
-		## Cannot reassign the caller's variable through a node reference.
-		## The caller must check for null on next call.
-		pass
-	return stream
-
-
-## On-demand load an array of streams into a stored variable.
-func _defer_ui_stream_array(ref_arr: Array, path_template: String,
-		count: int, ref: Array) -> void:
-	if not ref_arr.is_empty():
-		return
-	for i: int in range(1, count + 1):
-		ref_arr.append(_load_stream(path_template % i))
-
-
-# ── Bus utilities ────────────────────────────────────────────────────────────
-
-## Assign a player to a bus by name. Safe no-op if the bus does not exist yet.
-func _configure_player_bus(player: AudioStreamPlayer, bus_name: String) -> void:
-	player.bus = bus_name
-
-## Read a bus's current volume in dB.
-func _get_bus_volume_db(bus_idx: int) -> float:
-	return AudioServer.get_bus_volume_db(bus_idx)
-
-## Set a bus's volume in dB.
-func _set_bus_volume_db(bus_idx: int, db_value: float) -> void:
-	AudioServer.set_bus_volume_db(bus_idx, db_value)
-
-
-## Subscribe a newly-added enemy node to the defeated signal.
-func _on_node_added(node: Node) -> void:
-	if node.is_in_group("enemy"):
-		_subscribe_enemy_defeated_signal(node)
-
-
-## Connect to an enemy's `defeated` signal if it has one.
-## Guards against double-connection on the same node.
-func _subscribe_enemy_defeated_signal(enemy: Node) -> void:
-	if enemy.has_signal("defeated") and not enemy.defeated.is_connected(play_enemy_defeat):
-		enemy.defeated.connect(play_enemy_defeat)
-
-
-# ── Button hold hum (spec §4.8) ──────────────────────────────────────────────
-## Sustained hum that plays while a RollingBox rests on a floor button.
-## Called by floor_button.gd on press / release.
-## Audio files: sfx/sfx_button_hum_loop.ogg  (3 s loop — player.set_loop(true))
-##                sfx/sfx_button_press_*.ogg   (one-shot click)
-##                sfx/sfx_button_release_*.ogg (one-shot release)
-
-var _button_hum_player: AudioStreamPlayer
-var _button_hum_stream: AudioStream
-var _button_hum_ready: bool = false
-
-func _prepare_button_hum() -> void:
-	if _button_hum_ready:
-		return
-	_button_hum_player = AudioStreamPlayer.new()
-	_button_hum_player.bus = "MonoSFX"
-	add_child(_button_hum_player)
-	_button_hum_stream = _load_stream("sfx/sfx_button_hum_loop.ogg")
-	if _button_hum_stream != null:
-		_button_hum_stream.loop = true
-	_button_hum_ready = true
-
-func start_button_hum() -> void:
-	_prepare_button_hum()
-	if _button_hum_stream != null:
-		_button_hum_player.stream = _button_hum_stream
-		_button_hum_player.play()
-
-func stop_button_hum() -> void:
-	if _button_hum_player != null:
-		_button_hum_player.stop()
+func _on_music_restore_timeout() -> void:
+	## Restore Music bus to saved volume after duck period expires.
+	_is_ducked = false
+	if _music_bus_idx >= 0:
+		var current := AudioServer.get_bus_volume_db(_music_bus_idx)
+		var tween := create_tween()
+		tween.tween_method(
+			func(db: float) -> void: AudioServer.set_bus_volume_db(_music_bus_idx, db),
+			current, _saved_ab_volume_db, _STEM_C_RESTORE_SEC
+		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

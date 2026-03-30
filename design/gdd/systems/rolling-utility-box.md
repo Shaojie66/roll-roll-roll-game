@@ -146,7 +146,7 @@ defeated = predicted_top_face in enemy_vulnerability
 |--------|-----------|---------------------|
 | 网格移动 | This depends on 网格移动 | 需要稳定的格子坐标和方向输入 |
 | 动画系统 | This depends on 动画系统 | 需要可控的 90 度滚动动画 |
-| 机关系统 | This depends on 机关系统 | 需要按钮、门、能源槽响应 |
+| 机关联动系统 | This depends on 机关联动系统 | 需要按钮、门、能源槽响应。详见 [`interactables-system.md`](interactables-system.md) |
 | 敌人系统 | This depends on 敌人系统 | 需要敌人可配置脆弱面 |
 | 教学关卡系统 | 教学关卡系统 depends on this | 整个前 5 关围绕此系统展开 |
 | UI 系统 | UI depends on this | 需要读取顶面状态并展示给玩家 |

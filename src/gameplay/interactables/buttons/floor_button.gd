@@ -5,14 +5,15 @@ class_name FloorButton
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const BUTTON_HEIGHT := 0.03
-const PRESS_OFFSET := Vector3(0.0, -0.08, 0.0)
-const ANIMATION_DURATION := 0.12
+@export var press_offset := Vector3(0.0, -0.08, 0.0)
+@export var press_animation_duration := 0.12
 
 @export var accepted_face_kinds := PackedStringArray(["NORMAL", "IMPACT", "HEAVY", "ENERGY"])
 @export var linked_doors: Array[NodePath] = []
 
 var grid_position: Vector2i = Vector2i.ZERO
 var is_pressed := false
+var _was_pressed := false  ## tracks previous state to detect press/release transitions
 
 var _grid_motor: Node
 var _released_plate_position := Vector3.ZERO
@@ -63,7 +64,19 @@ func _refresh_state(force_visual_refresh := false) -> void:
 	if next_pressed == is_pressed and not force_visual_refresh:
 		return
 
+	## Detect press/release transitions for audio feedback.
+	var was_pressed := is_pressed
 	is_pressed = next_pressed
+
+	if was_pressed and not is_pressed:
+		## Box left the button.
+		AudioManager.play_button_release()
+		AudioManager.stop_button_hum()
+	elif is_pressed and not was_pressed:
+		## Box landed on the button.
+		AudioManager.play_button_press()
+		AudioManager.start_button_hum()
+
 	_apply_visual_state(force_visual_refresh)
 
 func _can_press(occupant: Node) -> bool:
@@ -84,7 +97,7 @@ func _sync_linked_doors() -> void:
 func _apply_visual_state(instant := false) -> void:
 	var target_position := _released_plate_position
 	if is_pressed:
-		target_position += PRESS_OFFSET
+		target_position += press_offset
 
 	if _plate_tween != null:
 		_plate_tween.kill()
@@ -97,8 +110,8 @@ func _apply_visual_state(instant := false) -> void:
 			plate,
 			"position",
 			target_position,
-			ANIMATION_DURATION
+			press_animation_duration
 		).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
-	status_light.light_color = Color(0.52, 1.0, 0.62, 1.0) if is_pressed else Color(1.0, 0.48, 0.42, 1.0)
+	status_light.light_color = DesignTokens.LIGHT_BUTTON_ON if is_pressed else DesignTokens.LIGHT_BUTTON_OFF
 	status_light.light_energy = 1.15 if is_pressed else 0.4

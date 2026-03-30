@@ -33,9 +33,14 @@ func register_entity(entity: Node) -> void:
 	occupiers[cell] = entity
 
 func unregister_entity(entity: Node) -> void:
-	for cell: Variant in occupiers.keys():
-		if occupiers[cell] == entity:
-			occupiers.erase(cell)
+	var cell: Variant = entity.get("grid_position")
+	if cell is Vector2i and occupiers.get(cell) == entity:
+		occupiers.erase(cell)
+		return
+	# Fallback: linear scan in case grid_position was already updated
+	for key: Variant in occupiers.keys():
+		if occupiers[key] == entity:
+			occupiers.erase(key)
 			return
 
 func get_entity_at(cell: Vector2i) -> Node:

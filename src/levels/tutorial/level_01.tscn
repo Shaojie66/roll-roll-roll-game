@@ -154,4 +154,3 @@ light_energy = 1.8
 shadow_enabled = true
 shadow_bias = 0.05
 rotation = Vector3(-0.890118, -0.575959, 0)
-light_energy = 2.2

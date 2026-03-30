@@ -5,7 +5,7 @@ class_name GoalPad
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const GOAL_HEIGHT := 0.03
-const ANIMATION_DURATION := 0.16
+@export var activate_animation_duration := 0.16
 
 @export var requires_external_power := false
 
@@ -62,6 +62,7 @@ func _activate_goal() -> void:
 		return
 
 	is_active = true
+	AudioManager.play_goal_activate()
 	_apply_visual_state()
 
 	var level_root := get_tree().get_first_node_in_group("level_root")
@@ -70,16 +71,16 @@ func _activate_goal() -> void:
 
 func _apply_visual_state(instant := false) -> void:
 	var target_scale := Vector3.ONE
-	var light_color := Color(0.62, 0.78, 1.0, 1.0)
+	var light_color := DesignTokens.LIGHT_GOAL_IDLE
 	var light_energy := 0.8
 
 	if is_active:
 		target_scale = Vector3(1.25, 1.0, 1.25)
-		light_color = Color(0.58, 0.96, 1.0, 1.0)
+		light_color = DesignTokens.LIGHT_GOAL_ACTIVE
 		light_energy = 1.5
 	elif requires_external_power and not is_powered:
 		target_scale = Vector3(0.82, 1.0, 0.82)
-		light_color = Color(0.36, 0.42, 0.54, 1.0)
+		light_color = DesignTokens.LIGHT_GOAL_UNLIT
 		light_energy = 0.18
 
 	if _ring_tween != null:
@@ -93,7 +94,7 @@ func _apply_visual_state(instant := false) -> void:
 			ring,
 			"scale",
 			target_scale,
-			ANIMATION_DURATION
+			activate_animation_duration
 		).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 	status_light.light_color = light_color

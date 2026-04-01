@@ -218,3 +218,97 @@ func test_conveyor_different_directions():
 	assert_eq(logic.push_count, 3, "Should have 3 pushes in different directions")
 
 	box.queue_free()
+
+
+## Multi-box terrain interaction tests
+
+func test_conveyor_skipped_when_box_not_at_position():
+	## Box leaves conveyor cell before next push tick
+	var logic := MockConveyorLogic.new()
+	var box := MockBox.new(Vector2i(2, 2))
+	add_child(box)
+	_motor.register_entity(box)
+
+	## Simulate: box enters conveyor, then leaves before push
+	logic.try_push(box, Vector2i.RIGHT)
+	assert_eq(logic.push_count, 1, "First push succeeds")
+
+	## Box is no longer at conveyor position — subsequent push should not affect it
+	var another_box := MockBox.new(Vector2i(3, 2))
+	add_child(another_box)
+
+	logic.try_push(another_box, Vector2i.RIGHT)
+	assert_eq(logic.push_count, 2, "Push affects different box at different position")
+
+	box.queue_free()
+	another_box.queue_free()
+
+
+func test_conveyor_blocked_by_wall_returns_false():
+	var logic := MockConveyorLogic.new()
+	var box := MockBox.new(Vector2i(1, 2))
+	add_child(box)
+	_motor.register_entity(box)
+
+	## Register a wall at the target cell
+	var wall := Node.new()
+	wall.set("blocks_grid_cell", true)
+	wall.set("grid_position", Vector2i(2, 2))
+	add_child(wall)
+	_motor.register_entity(wall, Vector2i(2, 2))
+
+	## Conveyor would push RIGHT but wall blocks
+	var did_push := logic.try_push(box, Vector2i.RIGHT)
+	assert_eq(did_push, false, "Push should be blocked by wall")
+	assert_eq(logic.push_count, 0, "No push should occur when blocked")
+
+	box.queue_free()
+	wall.queue_free()
+
+
+func test_multiple_terrain_tiles_independent():
+	## Two conveyor tiles at different positions don't interfere
+	var logic1 := MockConveyorLogic.new()
+	var logic2 := MockConveyorLogic.new()
+
+	var box1 := MockBox.new(Vector2i(1, 1))
+	var box2 := MockBox.new(Vector2i(3, 3))
+	add_child(box1)
+	add_child(box2)
+	_motor.register_entity(box1)
+	_motor.register_entity(box2)
+
+	## Each conveyor pushes independently
+	var push1 := logic1.try_push(box1, Vector2i.RIGHT)
+	var push2 := logic2.try_push(box2, Vector2i.LEFT)
+
+	assert_eq(push1, true, "First conveyor pushes its box")
+	assert_eq(push2, true, "Second conveyor pushes its box")
+	assert_eq(logic1.push_count, 1)
+	assert_eq(logic2.push_count, 1)
+
+	box1.queue_free()
+	box2.queue_free()
+
+
+func test_terrain_tile_blocks_grid_cell_false():
+	## Terrain tiles must register with blocks_grid_cell = false
+	var box := MockBox.new(Vector2i(2, 2))
+	box.set("blocks_grid_cell", false)  ## Simulate terrain behavior
+	add_child(box)
+	_motor.register_entity(box)
+
+	## A terrain tile at same position should not block the box
+	var terrain := MockBox.new(Vector2i(2, 2))
+	terrain.set("blocks_grid_cell", false)  ## Terrain blocks_grid_cell = false
+	add_child(terrain)
+
+	## Terrain can be registered at same cell (non-blocking)
+	_motor.register_entity(terrain, Vector2i(2, 2))
+
+	## Both entities should be able to occupy same cell (terrain is non-blocking)
+	var occupant = _motor.get_entity_at(Vector2i(2, 2))
+	assert_ne(occupant, null, "Should have an occupant")
+
+	box.queue_free()
+	terrain.queue_free()

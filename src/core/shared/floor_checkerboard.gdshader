@@ -9,6 +9,7 @@ uniform float grid_line_width = 0.05;
 uniform vec4 void_color : source_color = vec4(0.039, 0.071, 0.125, 1.0);
 uniform float fade_start = 0.80;
 uniform float fade_end = 1.00;
+uniform sampler2D floor_texture : source_color;
 
 void fragment() {
 	// UV (0..1) per face. Since BoxMesh UV starts at bottom-left of each face,
@@ -26,6 +27,11 @@ void fragment() {
 	float is_grid = clamp(line_x + line_z, 0.0, 1.0);
 
 	ALBEDO = mix(base_color.rgb, grid_line.rgb, is_grid);
+
+	// Apply floor texture if available
+	if (texture(floor_texture, UV).a > 0.0) {
+		ALBEDO = mix(ALBEDO, texture(floor_texture, UV).rgb, 0.6);
+	}
 
 	// Edge-fade to void: radial distance from UV center (mesh center).
 	// Radial fade means the gradient is always world-space centered regardless of mesh aspect ratio.

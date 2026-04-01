@@ -27,6 +27,25 @@ The core mechanic: push a Rolling Utility Box one grid cell, and its top face ch
 
 ---
 
+## Art Assets
+
+Generated textures for the game:
+
+### Box Faces
+| Normal | Impact | Heavy | Energy |
+|--------|--------|-------|--------|
+| ![Normal](assets/art/boxes/box_face_normal.png) | ![Impact](assets/art/boxes/box_face_impact.png) | ![Heavy](assets/art/boxes/box_face_heavy.png) | ![Energy](assets/art/boxes/box_face_energy.png) |
+
+### Environment
+| Floor | Wall |
+|-------|------|
+| ![Floor](assets/art/environment/floor_tile.png) | ![Wall](assets/art/environment/wall_tile.png) |
+
+### Player Character
+![Player](assets/art/player_character.png)
+
+---
+
 ## Quick Start
 
 1. Open the project in **Godot 4.6**

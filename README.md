@@ -50,9 +50,9 @@ Generated textures for the game:
 | ![Normal](assets/art/enemies/enemy_normal.png) | ![Heavy](assets/art/enemies/enemy_heavy.png) |
 
 ### Environment Objects
-| Door | Floor Button | Energy Socket | Ramp Tile |
-|------|--------------|---------------|-----------|
-| ![Door](assets/art/doors/door.png) | ![Button](assets/art/environment/floor_button.png) | ![Socket](assets/art/environment/energy_socket.png) | ![Ramp](assets/art/environment/ramp_tile.png) |
+| Door | Floor Button | Energy Socket | Ramp Tile | Conveyor Tile | Goal Pad | Rotating Platform |
+|------|--------------|---------------|-----------|---------------|----------|------------------|
+| ![Door](assets/art/doors/door.png) | ![Button](assets/art/environment/floor_button.png) | ![Socket](assets/art/environment/energy_socket.png) | ![Ramp](assets/art/environment/ramp_tile.png) | ![Conveyor](assets/art/environment/conveyor_tile.png) | ![Goal](assets/art/environment/goal_pad.png) | ![Rotating](assets/art/environment/rotating_platform.png) |
 
 ---
 

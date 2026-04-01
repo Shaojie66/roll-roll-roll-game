@@ -1,14 +1,15 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/enemies/normal_enemy.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/art/enemies/enemy_heavy.png" id="10"]
 
 [sub_resource type="SphereMesh" id="1"]
 radius = 0.48
 height = 0.96
 
 [sub_resource type="StandardMaterial3D" id="2"]
-albedo_color = Color(0.576471, 0.65098, 0.772549, 1)
-roughness = 0.18
+albedo_texture = ExtResource("10")
+roughness = 0.2
 
 [sub_resource type="CylinderMesh" id="3"]
 top_radius = 0.36

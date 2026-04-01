@@ -50,6 +50,9 @@ func defeat(direction: Vector2i, face_kind: String) -> void:
 	is_defeated = true
 	blocks_grid_cell = false
 
+	if _grid_motor != null and _grid_motor.has_method("unregister_entity"):
+		_grid_motor.unregister_entity(self)
+
 	var launch_offset := Vector3(direction.x * 0.65, 0.55, direction.y * 0.65)
 	var spin_direction := 1.0
 	if direction.x < 0 or direction.y < 0:

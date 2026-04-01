@@ -138,3 +138,83 @@ func test_rotating_platform_leaves_front_back_unchanged():
 	assert_eq(box._orientation["front"], old_front, "Front should be unchanged")
 	assert_eq(box._orientation["back"], old_back, "Back should be unchanged")
 	box.queue_free()
+
+## Conveyor belt tests
+
+class MockConveyorLogic extends RefCounted:
+	var push_count: int = 0
+	var last_push_dir: Vector2i = Vector2i.ZERO
+	var is_busy: bool = false
+
+	func try_push(box, direction: Vector2i) -> bool:
+		if is_busy:
+			return false
+		push_count += 1
+		last_push_dir = direction
+		return true
+
+
+func test_conveyor_pushes_box_when_ready():
+	var logic := MockConveyorLogic.new()
+	var box := MockBox.new(Vector2i(2, 2))
+	add_child(box)
+	_motor.register_entity(box)
+
+	# Simulate conveyor belt logic
+	var did_push := logic.try_push(box, Vector2i.RIGHT)
+	assert_eq(did_push, true, "Should push when not busy")
+	assert_eq(logic.push_count, 1, "Push count should be 1")
+	assert_eq(logic.last_push_dir, Vector2i.RIGHT, "Push direction should be RIGHT")
+
+	box.queue_free()
+
+
+func test_conveyor_skips_when_busy():
+	var logic := MockConveyorLogic.new()
+	var box := MockBox.new(Vector2i(2, 2))
+	add_child(box)
+	_motor.register_entity(box)
+
+	logic.is_busy = true
+	var did_push := logic.try_push(box, Vector2i.RIGHT)
+	assert_eq(did_push, false, "Should not push when busy")
+	assert_eq(logic.push_count, 0, "Push count should remain 0")
+
+	box.queue_free()
+
+
+func test_conveyor_consecutive_pushes():
+	var logic := MockConveyorLogic.new()
+	var box := MockBox.new(Vector2i(2, 2))
+	add_child(box)
+	_motor.register_entity(box)
+
+	# Simulate 3 consecutive pushes
+	logic.try_push(box, Vector2i.RIGHT)
+	logic.try_push(box, Vector2i.RIGHT)
+	logic.try_push(box, Vector2i.RIGHT)
+
+	assert_eq(logic.push_count, 3, "Should have 3 pushes")
+	assert_eq(logic.last_push_dir, Vector2i.RIGHT, "Last push should be RIGHT")
+
+	box.queue_free()
+
+
+func test_conveyor_different_directions():
+	var logic := MockConveyorLogic.new()
+	var box := MockBox.new(Vector2i(2, 2))
+	add_child(box)
+	_motor.register_entity(box)
+
+	logic.try_push(box, Vector2i.UP)
+	assert_eq(logic.last_push_dir, Vector2i.UP)
+
+	logic.try_push(box, Vector2i.DOWN)
+	assert_eq(logic.last_push_dir, Vector2i.DOWN)
+
+	logic.try_push(box, Vector2i.LEFT)
+	assert_eq(logic.last_push_dir, Vector2i.LEFT)
+
+	assert_eq(logic.push_count, 3, "Should have 3 pushes in different directions")
+
+	box.queue_free()

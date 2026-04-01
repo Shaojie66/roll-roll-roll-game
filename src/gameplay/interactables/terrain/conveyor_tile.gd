@@ -9,7 +9,6 @@ class_name ConveyorTile
 const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const TERRAIN_HEIGHT := 0.0
-const DesignTokens.CONVEYOR_INTERVAL := DesignTokens.DesignTokens.CONVEYOR_INTERVAL  ## seconds between auto-pushes
 
 @export var conveyor_direction: Vector2i = Vector2i.RIGHT
 
@@ -30,7 +29,7 @@ func _ready() -> void:
 	grid_position = GridCoordRef.world_to_grid(global_position)
 	global_position = GridCoordRef.grid_to_world(grid_position, TERRAIN_HEIGHT)
 
-	push_timer.wait_time = DesignTokens.DesignTokens.CONVEYOR_INTERVAL
+	push_timer.wait_time = DesignTokens.CONVEYOR_INTERVAL
 	push_timer.timeout.connect(_on_push_timer)
 
 	_bind_grid_motor()

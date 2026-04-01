@@ -12,6 +12,15 @@ conversation-*.txt
 .DS_Store
 Thumbs.db
 
+# Claude Code Game Studios framework (local only, not tracked)
+.claude/
+.github/
+tools/
+addons/
+CLAUDE.md
+UPGRADING.md
+Claude Code Game Studios.code-workspace
+
 # Large binary assets (GG2 soundpack etc.)
 # Uncomment if using Git LFS:
 # *.ogg

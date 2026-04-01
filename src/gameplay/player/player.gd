@@ -97,12 +97,12 @@ func _show_deny_feedback(reason: String) -> void:
 	_body_mat.albedo_color = DesignTokens.DENY_FLASH_ALBEDO
 	_body_mat.emission = DesignTokens.DENY_FLASH_EMISSION
 	_body_mat.emission_energy_multiplier = 1.2
-	_deny_tween.tween_method(
-		_restore_body_material.bind(_original_body_albedo, _original_body_emission),
-		0.0, 1.0, 0.25
+	_deny_tween.tween_callback(
+		_restore_body_material.bind(_original_body_albedo, _original_body_emission)
 	)
+	_deny_tween.tween_interval(0.25)
 
-func _restore_body_material(_t: float, albedo: Color, emission: Color) -> void:
+func _restore_body_material(albedo: Color, emission: Color) -> void:
 	if _body_mat == null:
 		return
 	_body_mat.albedo_color = albedo

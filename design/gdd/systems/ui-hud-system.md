@@ -66,6 +66,46 @@ UI/HUD 系统管理游戏内的所有 2D 界面元素：抬头显示（HUD）、
 
 ---
 
+## Formulas
+
+### Star Rating Calculation
+
+```
+star_rating = calculate_stars(move_count: int, par_moves: int) -> int:
+  if move_count <= par_moves:
+    return 3
+  elif move_count <= par_moves * 1.5:
+    return 2
+  else:
+    return 1
+```
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| `move_count` | int | 玩家实际移动步数 |
+| `par_moves` | int | 当前关卡的标准步数 |
+| `star_rating` | int | 1-3 星 |
+
+### Star Display Thresholds
+
+| 星数 | 条件 | 颜色 |
+|------|------|------|
+| ★★★ | move_count ≤ par | 金色 |
+| ★★☆ | par < move_count ≤ par × 1.5 | 银色 |
+| ★☆☆ | move_count > par × 1.5 | 铜色 |
+| —/— | 未达成 | 灰色 |
+
+### HUD Layout Margins
+
+```
+H_MARGIN = 24px
+V_MARGIN = 24px
+CONTROLS_CARD_WIDTH = 280px
+OBJECTIVE_CARD_WIDTH = 360px
+```
+
+---
+
 ## HUD Components
 
 ### LevelCard (top-left)

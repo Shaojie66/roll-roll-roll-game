@@ -164,6 +164,43 @@ _spawn_minions(direction: Vector2, face_kind: String):
 
 ---
 
+## Formulas
+
+### Defeat Condition Check
+
+```
+can_be_defeated_by(face_kind: String) -> bool:
+  return face_kind in accepted_face_kinds
+```
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| `face_kind` | String | 箱子预测顶面类型 ("NORMAL", "IMPACT", "HEAVY", "ENERGY") |
+| `accepted_face_kinds` | Array[String] | 该敌人接受的顶面类型白名单 |
+
+### ShieldEnemy 盾牌伤害公式
+
+```
+第1次打击: shield_hp = 1 → shield_hp -= 1 → shield_hp = 0, 不死亡
+第2次打击: shield_hp = 0 → 执行正常死亡逻辑
+```
+
+### SplitterEnemy 分裂位置公式
+
+```
+perpendicular = Vector2(-direction.y, direction.x)
+cell_a = self.grid_position + perpendicular
+cell_b = self.grid_position - perpendicular
+```
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| `direction` | Vector2i | 箱子推动方向 |
+| `perpendicular` | Vector2i | 垂直于direction的单位向量 |
+| `cell_a`, `cell_b` | Vector2i | 两个子敌人出现的位置 |
+
+---
+
 ## Enemy Variants
 
 ### NormalEnemy

@@ -268,6 +268,23 @@ func _show_level_complete_overlay() -> void:
 	if grid_motor != null and grid_motor.has_method("get_move_count"):
 		move_count = grid_motor.get_move_count()
 
+	var star_count := _star_count_for_moves(move_count)
+
+	# Set star labels: ★ for earned, ☆ for not earned
+	var stars: Array[Label] = [complete_star1, complete_star2, complete_star3]
+	var star_texts: Array[String] = ["", "", ""]
+	for i in range(3):
+		if i < star_count:
+			star_texts[i] = "★"
+		else:
+			star_texts[i] = "☆"
+		stars[i].text = star_texts[i]
+		# Set color: gold for earned, gray for not
+		if i < star_count:
+			stars[i].add_theme_color_override("font_color", Color(1.0, 0.84, 0.0))  # Gold
+		else:
+			stars[i].add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))  # Gray
+
 	complete_moves.text = "步数: %d" % move_count
 
 	if is_last_level:

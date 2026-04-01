@@ -255,30 +255,7 @@ func apply_rotation() -> void:
 ## Called by RampTile when the box rolls onto a ramp.
 ## The transform is the same as a roll orientation shift.
 func apply_ramp_transform(roll_direction: Vector2i) -> void:
-	var old := _orientation.duplicate()
-
-	if roll_direction == Vector2i.RIGHT:
-		_orientation["top"] = old["left"]
-		_orientation["bottom"] = old["right"]
-		_orientation["left"] = old["bottom"]
-		_orientation["right"] = old["top"]
-	elif roll_direction == Vector2i.LEFT:
-		_orientation["top"] = old["right"]
-		_orientation["bottom"] = old["left"]
-		_orientation["left"] = old["top"]
-		_orientation["right"] = old["bottom"]
-	elif roll_direction == Vector2i.DOWN:
-		_orientation["top"] = old["back"]
-		_orientation["bottom"] = old["front"]
-		_orientation["front"] = old["top"]
-		_orientation["back"] = old["bottom"]
-	elif roll_direction == Vector2i.UP:
-		_orientation["top"] = old["front"]
-		_orientation["bottom"] = old["back"]
-		_orientation["front"] = old["bottom"]
-		_orientation["back"] = old["top"]
-	## No else — invalid direction is silently ignored
-
+	_orientation = _predict_orientation_after_roll(roll_direction)
 	_refresh_display()
 
 func _bind_grid_motor() -> void:

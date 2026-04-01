@@ -90,7 +90,7 @@ func defeat(direction: Vector2i, face_kind: String) -> void:
 	if AudioManager and AudioManager.has_method('play_enemy_defeat'):
 		AudioManager.play_enemy_defeat()
 
-defeated.emit()
+	defeated.emit()
 
 func _on_death_animation_done() -> void:
 	_spawn_minions()

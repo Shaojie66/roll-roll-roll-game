@@ -44,6 +44,16 @@ Generated textures for the game:
 ### Player Character
 ![Player](assets/art/player_character.png)
 
+### Enemies
+| Normal Enemy | Heavy Enemy |
+|--------------|-------------|
+| ![Normal](assets/art/enemies/enemy_normal.png) | ![Heavy](assets/art/enemies/enemy_heavy.png) |
+
+### Environment Objects
+| Door | Floor Button | Energy Socket | Ramp Tile |
+|------|--------------|---------------|-----------|
+| ![Door](assets/art/doors/door.png) | ![Button](assets/art/environment/floor_button.png) | ![Socket](assets/art/environment/energy_socket.png) | ![Ramp](assets/art/environment/ramp_tile.png) |
+
 ---
 
 ## Quick Start

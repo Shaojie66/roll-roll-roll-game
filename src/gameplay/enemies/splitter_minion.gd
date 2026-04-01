@@ -9,6 +9,7 @@ const GridCoordRef = preload("res://src/core/grid/grid_coord.gd")
 
 const ENEMY_HEIGHT := 0.45
 const MINION_SIZE := 0.5
+const MINION_SPAWN_DURATION := 0.3
 
 @export var defeat_duration := DesignTokens.ENEMY_DEFEAT_DURATION
 

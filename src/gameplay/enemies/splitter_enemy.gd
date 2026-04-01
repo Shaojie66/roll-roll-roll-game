@@ -110,12 +110,9 @@ func _spawn_minion_at(target_cell: Vector2i) -> void:
 	if _grid_motor == null:
 		return
 
-	## Check if cell is empty
-	if not _grid_motor.has_method("is_cell_empty"):
-		return
-
-	var is_empty := _grid_motor.is_cell_empty(target_cell)
-	if not is_empty:
+	## Check if cell is empty using get_entity_at
+	var occupant = _grid_motor.get_entity_at(target_cell)
+	if occupant != null:
 		return
 
 	## Spawn the minion
@@ -123,4 +120,4 @@ func _spawn_minion_at(target_cell: Vector2i) -> void:
 	minion.global_position = GridCoordRef.grid_to_world(target_cell, ENEMY_HEIGHT)
 	get_tree().root.add_child(minion)
 	minion.grid_position = target_cell
-	_grid_motor.register_entity_at(minion, target_cell)
+	_grid_motor.register_entity(minion)

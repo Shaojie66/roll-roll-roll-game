@@ -102,9 +102,10 @@ func try_push_box(box: Node, direction: Vector2i) -> bool:
 			return false
 
 		if occupant.has_method("can_be_defeated_by") and occupant.can_be_defeated_by(predicted_face_kind):
-			unregister_entity(occupant)
 			if occupant.has_method("defeat"):
 				occupant.defeat(direction, predicted_face_kind)
+			if occupant.get("is_defeated") == true:
+				unregister_entity(occupant)
 			_commit_move(box, target, direction)
 			return true
 

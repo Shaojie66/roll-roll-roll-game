@@ -115,7 +115,7 @@ func _on_push_timer() -> void:
 		## cleaning up _box and stopping the conveyor.
 		## No extra work needed here.
 	else:
-		## Blocked — try again next tick
+		pass  ## Blocked — try again next tick
 
 func _apply_visual_state(instant: bool = false) -> void:
 	if glow_light == null:

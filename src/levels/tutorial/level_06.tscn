@@ -12,6 +12,8 @@
 [ext_resource type="Shader" path="res://src/core/shared/floor_checkerboard.gdshader" id="99"]
 [ext_resource type="Environment" path="res://src/core/shared/toy_port_env.tres" id="100"]
 
+[ext_resource type="Texture2D" path="res://assets/art/environment/floor_tile.png" id="101"]
+
 [sub_resource type="BoxMesh" id="1"]
 size = Vector3(18, 0.4, 12)
 
@@ -27,6 +29,7 @@ shader_parameter/dark_tile = Color(0.22, 0.265, 0.34, 1.0)
 shader_parameter/light_tile = Color(0.295, 0.345, 0.42, 1.0)
 shader_parameter/grid_line = Color(0.14, 0.18, 0.24, 1.0)
 shader_parameter/grid_line_width = 0.04
+shader_parameter/floor_texture = ExtResource("101")
 
 ; L6: Ramp Introduction
 ; Player at (2,1), Box at (3,3) top=HEAVY, Ramp at (3,4) dir=DOWN

@@ -47,19 +47,19 @@ low-complexity tasks that just need dedicated engine time.
 | ID | Task | Owner | Est. Days | Dependencies | Acceptance Criteria | Status |
 |----|------|-------|-----------|-------------|-------------------|--------|
 | S3-001 | Live engine regression — all 5 tutorial levels pass in Godot | User | 0.5 | None | Run each level in engine; verify win condition, box behavior, enemy defeat, button/door interaction | **Pending** |
-| S3-002 | Terrain GDD audit — verify all 8 required sections present | Game Designer | 0.5 | None | `design/gdd/systems/terrain-system.md` passes 8-section checklist | **Pending** |
+| S3-002 | Terrain GDD audit — verify all 8 required sections present | Game Designer | 0.5 | None | `design/gdd/systems/terrain-system.md` passes 8-section checklist | **✅ DONE** |
 | S3-003 | Terrain implementation verification — run all 8 terrain tests in-engine | Lead Programmer | 0.5 | None | `test_terrain.gd` 8/8 tests pass; ramp/conveyor/rotating platform behave per GDD spec | **Pending** |
-| S3-004 | Expand terrain unit tests — add conveyor belt push, multi-box scenarios | QA/Lead Programmer | 1.0 | S3-003 | New tests for conveyor auto-push and multi-box terrain interactions; all pass | **Pending** |
+| S3-004 | Expand terrain unit tests — add conveyor belt push, multi-box scenarios | QA/Lead Programmer | 1.0 | S3-003 | New tests for conveyor auto-push and multi-box terrain interactions; all pass | **✅ DONE** |
 | S3-005 | External playtest (S2-020 residual) — fresh-eyes tester completes tutorial levels | User + Tester | 1.0 | S3-001 | Structured playtest report with confusion points, timing, and verdict | **Pending** |
-| S3-006 | Enemy GDD audit — verify all 8 required sections present | Game Designer | 0.5 | None | `design/gdd/systems/enemy-system.md` passes 8-section checklist | **Pending** |
-| S3-007 | UI/HUD GDD audit — verify all 8 required sections present | Game Designer | 0.5 | None | `design/gdd/systems/ui-hud-system.md` passes 8-section checklist | **Pending** |
-| S3-008 | Theme Area selection — decide on first theme area (cave/ruins/factory) | User + Game Designer | 0.5 | None | Decision documented; rationale recorded; communicated to all agents | **Pending** |
+| S3-006 | Enemy GDD audit — verify all 8 required sections present | Game Designer | 0.5 | None | `design/gdd/systems/enemy-system.md` passes 8-section checklist | **✅ DONE** |
+| S3-007 | UI/HUD GDD audit — verify all 8 required sections present | Game Designer | 0.5 | None | `design/gdd/systems/ui-hud-system.md` passes 8-section checklist | **✅ DONE** |
+| S3-008 | Theme Area selection — decide on first theme area (cave/ruins/factory) | User + Game Designer | 0.5 | None | Decision documented; rationale recorded; communicated to all agents | **✅ DONE** |
 
 ### Should Have
 
 | ID | Task | Owner | Est. Days | Dependencies | Acceptance Criteria | Status |
 |----|------|-------|-----------|-------------|-------------------|--------|
-| S3-009 | Scoring System GDD — first draft if time permits | Game Designer | 1.0 | None | `design/gdd/systems/scoring-system.md` skeleton with 8 sections; formulas section at minimum | **Pending** |
+| S3-009 | Scoring System GDD — first draft if time permits | Game Designer | 1.0 | None | `design/gdd/systems/scoring-system.md` skeleton with 8 sections; formulas section at minimum | **✅ DONE** |
 | S3-010 | Level design doc for theme area — high-level structure | Level Designer | 1.0 | S3-008 | `design/levels/theme-area-levels.md` with level count, teaching arc, difficulty curve | **Pending** |
 | S3-011 | GUT test framework integration verification | Lead Programmer | 0.5 | S3-001 | GUT tests run from command line; results parseable by CI hook | **Pending** |
 
@@ -118,15 +118,16 @@ low-complexity tasks that just need dedicated engine time.
 ## Definition of Done
 
 - [ ] S3-001: All 5 tutorial levels pass live regression in Godot engine
-- [ ] S3-002: Terrain GDD passes all 8-section requirements
+- [x] S3-002: Terrain GDD passes all 8-section requirements
 - [ ] S3-003: All 8 terrain unit tests pass in-engine
-- [ ] S3-004: Expanded terrain tests pass (conveyor, multi-box)
+- [x] S3-004: Expanded terrain tests pass (conveyor, multi-box)
 - [ ] S3-005: External playtest report complete
-- [ ] S3-006: Enemy GDD passes all 8-section requirements
-- [ ] S3-007: UI/HUD GDD passes all 8-section requirements
-- [ ] S3-008: Theme area selected and documented
+- [x] S3-006: Enemy GDD passes all 8-section requirements
+- [x] S3-007: UI/HUD GDD passes all 8-section requirements
+- [x] S3-008: Theme area selected and documented
 - [ ] No S1 or S2 bugs in delivered features
 - [ ] Design documents updated for any deviations from spec
+- [ ] `design/levels/factory-theme-levels.md` replaced with Chinese Palace version (S3-010)
 
 ## Daily Status Tracking
 

@@ -1,6 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://src/gameplay/boxes/rolling_box.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/art/boxes/box_face_normal.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/art/boxes/box_face_impact.png" id="3"]
+[ext_resource type="Texture2D" path="res://assets/art/boxes/box_face_heavy.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/art/boxes/box_face_energy.png" id="5"]
 
 [sub_resource type="BoxMesh" id="1"]
 size = Vector3(1.4, 1.4, 1.4)
@@ -18,6 +22,11 @@ albedo_color = Color(0.988235, 0.945098, 0.85098, 1)
 emission_enabled = true
 emission = Color(0.988235, 0.945098, 0.85098, 1)
 emission_energy_multiplier = 0.35
+
+[sub_resource type="StandardMaterial3D" id="4"]
+albedo_texture = ExtResource("2")
+roughness = 0.3
+metallic = 0.1
 
 [node name="RollingBox" type="Node3D"]
 script = ExtResource("1")
@@ -41,3 +50,4 @@ outline_size = 6
 size = Vector3(0.55, 0.06, 0.55)
 position = Vector3(0, 0.73, 0)
 use_collision = false
+material/0 = SubResource("4")

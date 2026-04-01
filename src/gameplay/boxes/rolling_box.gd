@@ -22,6 +22,14 @@ const BOX_HEIGHT := 0.5
 ## Declared as var (not const) so Color references resolve at runtime.
 var FACE_VISUALS: Dictionary = {}
 
+## Face textures
+const FACE_TEXTURES: Dictionary = {
+	"NORMAL": preload("res://assets/art/boxes/box_face_normal.png"),
+	"IMPACT": preload("res://assets/art/boxes/box_face_impact.png"),
+	"HEAVY": preload("res://assets/art/boxes/box_face_heavy.png"),
+	"ENERGY": preload("res://assets/art/boxes/box_face_energy.png"),
+}
+
 var grid_position: Vector2i = Vector2i.ZERO
 var is_busy := false
 var blocks_grid_cell := true
@@ -191,10 +199,19 @@ func _refresh_display() -> void:
 		if panel_mat == null:
 			panel_mat = StandardMaterial3D.new()
 			face_panel.material = panel_mat
-		panel_mat.emission_enabled = true
-		panel_mat.albedo_color = body_color
-		panel_mat.emission = body_color
-		panel_mat.emission_energy_multiplier = 0.30
+		## Apply face texture if available, otherwise use color
+		var face_tex: Texture2D = FACE_TEXTURES.get(face_kind, null)
+		if face_tex != null:
+			panel_mat.albedo_texture = face_tex
+			panel_mat.emission_enabled = true
+			panel_mat.emission_texture = face_tex
+			panel_mat.emission_energy_multiplier = 0.25
+		else:
+			panel_mat.albedo_texture = null
+			panel_mat.emission_enabled = true
+			panel_mat.albedo_color = body_color
+			panel_mat.emission = body_color
+			panel_mat.emission_energy_multiplier = 0.30
 
 func _face_kind_name(face_id: int) -> String:
 	match face_id:

@@ -30,24 +30,24 @@
 
 | Document | Path | Status | Covers Systems |
 |----------|------|--------|---------------|
-| Game Concept | [`game-concept.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/design/gdd/game-concept.md) | Draft | All (high-level) |
-| Rolling Utility Box | [`rolling-utility-box.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/design/gdd/systems/rolling-utility-box.md) | Draft | #1 Rolling Box, partial #6 Enemy |
-| Interactables System | [`interactables-system.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/design/gdd/systems/interactables-system.md) | Draft | #2 Interactables |
-| Enemy System | [`enemy-system.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/design/gdd/systems/enemy-system.md) | Draft | #6 Enemy |
+| Game Concept | [`game-concept.md`](game-concept.md) | Draft | All (high-level) |
+| Rolling Utility Box | [`rolling-utility-box.md`](systems/rolling-utility-box.md) | Draft | #1 Rolling Box, partial #6 Enemy |
+| Interactables System | [`interactables-system.md`](systems/interactables-system.md) | Draft | #2 Interactables |
+| Enemy System | [`enemy-system.md`](systems/enemy-system.md) | Draft | #6 Enemy |
 
 ## ADR Documents
 
 | ADR | Path | Systems Covered |
 |-----|------|----------------|
-| ADR-002 | [`adr-002-grid-motor.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/docs/architecture/adr-002-grid-motor.md) | #3 Grid Motor |
-| ADR-003 | [`adr-003-audio-manager.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/docs/architecture/adr-003-audio-manager.md) | #7 Audio Manager |
-| ADR-004 | [`adr-004-interactable-signal-architecture.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/docs/architecture/adr-004-interactable-signal-architecture.md) | #2 Interactables |
+| ADR-002 | [`adr-002-grid-motor.md`](../../docs/architecture/adr-002-grid-motor.md) | #3 Grid Motor |
+| ADR-003 | [`adr-003-audio-manager.md`](../../docs/architecture/adr-003-audio-manager.md) | #7 Audio Manager |
+| ADR-004 | [`adr-004-interactable-signal-architecture.md`](../../docs/architecture/adr-004-interactable-signal-architecture.md) | #2 Interactables |
 
 ## Level Design Documents
 
 | Document | Path | Status |
 |----------|------|--------|
-| Tutorial Arc (Level 1-5) | [`tutorial-arc-first-five-levels.md`](file:///Users/chenshaojie/Downloads/code/Claude-Code-Game-Studios/design/levels/tutorial-arc-first-five-levels.md) | Draft |
+| Tutorial Arc (Level 1-5) | [`tutorial-arc-first-five-levels.md`](../levels/tutorial-arc-first-five-levels.md) | Draft |
 
 ## System Dependency Map
 
